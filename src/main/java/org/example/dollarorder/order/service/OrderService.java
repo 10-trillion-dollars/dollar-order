@@ -108,6 +108,10 @@ public class OrderService {
         }
     }
 
+    public long countByUserIdAndProductId(Long userId, Long productId) {
+        return orderDetailRepository.countByUserIdAndProductId(userId, productId);
+    }
+
     public Long getTotalPrice(Long orderId) {
         List<OrderDetail> ListofOrderDetail = orderDetailRepository.findOrderDetailsByOrder(
             orderRepository.getReferenceById(orderId));
