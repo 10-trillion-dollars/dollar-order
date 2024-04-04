@@ -19,6 +19,8 @@ public class OrderAdminService {
             order.changeState(OrderState.SHIPPING);
         } else if (requestState == 2) {
             order.changeState(OrderState.DELIVERED);
+        } else if (requestState == 3) {
+            order.changeState(OrderState.NOTPAYED);
         }
         orderRepository.save(order);
 

@@ -22,9 +22,8 @@ public class OrderAdminController {
     @Secured("ROLE_SELLER")
     @PutMapping("/order/{orderId}")
     public ResponseEntity<CommonResponseDto> updateOrderState(@RequestBody StateRequestDto requestDto, @PathVariable Long orderId){
-
-           orderAdminService.changeState(requestDto.getStateNum(),orderId);
-           return ResponseEntity.status(200).body(new CommonResponseDto(200,"변경이 완료됐습니다."));
+        orderAdminService.changeState(requestDto.getStateNum(),orderId);
+        return ResponseEntity.status(200).body(new CommonResponseDto(200,"변경이 완료됐습니다."));
     }
 
 }
