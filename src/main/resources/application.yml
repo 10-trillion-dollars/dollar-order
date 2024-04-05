@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: dollar-order
+  datasource:
+    url: ${rds.host}
+    username: ${rds.username}
+    password: ${rds.password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        use_sql_comments: true
+jwt:
+    key: ${jwt.secret.key}
+server:
+  port: 8084
