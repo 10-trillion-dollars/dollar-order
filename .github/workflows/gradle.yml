@@ -28,7 +28,7 @@ jobs:
           spring.datasource.url: ${{ secrets.RDS_HOST }}
           spring.datasource.username: ${{ secrets.RDS_USERNAME }}
           spring.datasource.password: ${{ secrets.RDS_PASSWORD }}
-          spring.data.redis.host: ${{ REDIS_HOST }}
+          spring.data.redis.host: ${{ secrets.REDIS_HOST }}
           jwt.key: ${{ secrets.JWT_KEY }}
           kakao.api.admin-key: ${{ secrets.KAKAO_ADMIN_KEY }}
 
