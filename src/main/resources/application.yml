@@ -16,5 +16,10 @@ spring:
         use_sql_comments: true
 jwt:
   key: ${jwt.secret.key}
+  
+kakao:
+  api:
+    admin-key: ${kakao.api.admin-key}
+    
 server:
   port: 8084
