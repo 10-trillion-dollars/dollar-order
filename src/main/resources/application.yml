@@ -16,7 +16,7 @@ spring:
         use_sql_comments: true
   data:
     redis:
-      host: ${elasticcache.endpoint}
+      host: localhost
       port: 6379
 jwt:
   key: ${jwt.secret.key}

@@ -16,4 +16,8 @@ public class OrderFeignController {
     Long countByUserIdAndProductId(@PathVariable Long userId, @PathVariable Long productId){
         return orderService.countByUserIdAndProductId(userId, productId);
     }
+    @GetMapping("/order/users/{userId}/products/{productId}")
+    String checkOrderState(@PathVariable Long userId,@PathVariable Long productId) {
+        return orderService.checkOrderState(userId,productId);
+    }
 }

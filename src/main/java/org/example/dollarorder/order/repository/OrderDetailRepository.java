@@ -13,5 +13,7 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
     //review 검증 jpal
     @Query("SELECT COUNT(od) FROM OrderDetail od WHERE od.order.userId= :userId AND od.productId = :productId")
     long countByUserIdAndProductId(@Param("userId") Long userId, @Param("productId") Long productId);
+    @Query("SELECT o.state FROM OrderDetail od JOIN od.order o WHERE o.userId = :userId AND od.productId = :productId")
+    String findOrderStateByUserIdAndProductId(@Param("userId") Long userId, @Param("productId") Long productId);
 
 }

@@ -16,7 +16,7 @@ repositories {
 }
 
 dependencies {
-	implementation files("share-0.0.5.jar")
+	implementation files("share-0.0.6.jar")
 
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 
