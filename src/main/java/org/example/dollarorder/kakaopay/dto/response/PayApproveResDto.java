@@ -8,5 +8,8 @@ public class PayApproveResDto {
     private String item_name;
     private String created_at;
     private String approved_at;
-
+    private Long orderId;
+    public void setOrderId(Long orderId) {
+        this.orderId = orderId;
+    }
 }

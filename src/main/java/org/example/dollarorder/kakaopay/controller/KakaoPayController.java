@@ -21,39 +21,26 @@ import org.springframework.web.bind.annotation.RestController;
 public class KakaoPayController {
 
     private final KakaoPayService kakaoPayService;
-    private final OrderService orderService;
+
     @GetMapping("/ready/{orderId}")
     public ResponseEntity<?> getRedirectUrl(@PathVariable Long orderId) throws Exception {
-
-           return ResponseEntity.status(HttpStatus.OK)
-                    .body(kakaoPayService.getRedirectUrl(orderId));
-
-
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(kakaoPayService.getRedirectUrl(orderId));
     }
 
     @GetMapping("/success/{orderId}")
     public ResponseEntity<?> afterGetRedirectUrl(@PathVariable Long orderId,
-                                                 @RequestParam("pg_token") String pgToken) throws Exception {
-
-            PayApproveResDto kakaoApprove = kakaoPayService.getApprove(pgToken,orderId);
-
-            return ResponseEntity.status(HttpStatus.OK)
-                    .body(kakaoApprove);
-
-
+        @RequestParam("pg_token") String pgToken) throws Exception {
+        PayApproveResDto kakaoApprove = kakaoPayService.getApprove(pgToken,orderId);
+        return ResponseEntity.status(HttpStatus.OK)
+            .body("결제가 완료되었습니다 해당 페이지를 종료해주십시요.");
     }
+
     @GetMapping("/cancel/{orderId}")
     public ResponseEntity<?> cancel(@PathVariable Long orderId) throws Exception {
         CancelResDto cancelResDto = kakaoPayService.kakaoCancel(orderId);
-        orderService.deleteOrder(orderId);
-         return ResponseEntity.status(HttpStatus.OK)
-                 .body(cancelResDto);
-    }
-    @GetMapping("/fail")
-    public ResponseEntity<?> fail() {
-
-        return null;
-
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(cancelResDto);
     }
 
 }

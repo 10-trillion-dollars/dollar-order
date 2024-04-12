@@ -9,4 +9,5 @@ import org.springframework.util.LinkedMultiValueMap;
 public class PayRequestDto {
     private String url;
     private LinkedMultiValueMap<String,String> map;
+    private Long orderId;
 }
