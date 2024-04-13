@@ -18,14 +18,13 @@ public class OrderDetailAdminResponse {
     private final Long userId;
     private final Long addressId;
 
-    public OrderDetailAdminResponse(OrderDetail orderDetail) {
+    public OrderDetailAdminResponse(OrderDetail orderDetail, Order order) {
         this.id = orderDetail.getId();
         this.productId = orderDetail.getProductId();
         this.productName = orderDetail.getProductName();
         this.price = orderDetail.getPrice();
         this.quantity = orderDetail.getQuantity();
 
-        Order order = orderDetail.getOrder();
         this.orderId = order.getId();
         this.orderState = order.getState();
         this.userId = order.getUserId();

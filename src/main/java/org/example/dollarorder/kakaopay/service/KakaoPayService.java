@@ -116,7 +116,7 @@ public class KakaoPayService {
     }
 
     private Map<Long, Long> getBasketFromOrder(Order order) {
-        return orderDetailRepository.findByOrder(order)
+        return orderDetailRepository.findByOrderId(order.getId())
             .stream()
             .collect(Collectors.toMap(
                 OrderDetail::getProductId,

@@ -58,7 +58,7 @@ public class OrderService {
                 if (product.getStock() < basket.get(productId)) {
                     throw new BadRequestException("상품 재고가 부족합니다. 상품 ID: " + productId);
                 }
-                OrderDetail orderDetail = new OrderDetail(order, productId, basket.get(productId),
+                OrderDetail orderDetail = new OrderDetail(order.getId(), productId, basket.get(productId),
                     product.getPrice(), product.getName());
                 orderDetailRepository.save(orderDetail);
             } catch (InterruptedException e) {
@@ -86,19 +86,20 @@ public class OrderService {
             throw new BadRequestException("상품 재고가 부족합니다. 상품 ID: " + productId);
         }
         product.updateStockAfterOrder(quantity);
-        // productService.save(product);
+        productService.save(product);
     }
 
     public List<OrderDetailResponseDto> getOrderDetailList(Long orderId) {
-        List<OrderDetail> listOfOrderedProducts = orderDetailRepository.findOrderDetailsByOrder(
-            orderRepository.getById(orderId));
+        List<OrderDetail> listOfOrderedProducts = orderDetailRepository.findOrderDetailsByOrderId(
+            orderId);
         return listOfOrderedProducts.stream().map(OrderDetailResponseDto::new).toList();
     }
+
 
     @Transactional
     public void deleteOrder(Long orderId) {
         orderDetailRepository.deleteAll(
-            orderDetailRepository.findOrderDetailsByOrder(orderRepository.getById(orderId)));
+            orderDetailRepository.findOrderDetailsByOrderId(orderId));
         orderRepository.delete(orderRepository.getById(orderId));
     }
 
@@ -108,7 +109,11 @@ public class OrderService {
     }
 
     public boolean checkStock(Long productId, Long quantity) {
-        return productService.getProduct(productId).getStock() - quantity >= 0;
+        Long stock = productService.getProduct(productId).getStock();
+        if (stock < 1) {
+            throw new RuntimeException();
+        }
+        return stock - quantity >= 0;
     }
 
     public List<OrderResponseDto> getOrderList(UserDetailsImpl userDetails) {
@@ -130,17 +135,17 @@ public class OrderService {
         }
     }
 
-    public long countByUserIdAndProductId(Long userId, Long productId) {
-        return orderDetailRepository.countByUserIdAndProductId(userId, productId);
-    }
-
-    public List<OrderDetail> getOrderDetails(Long userId, Long productId) {
-        return orderDetailRepository.findByOrder_UserIdAndProductIdAndReviewedIsFalse(userId, productId);
-    }
+//    public long countByUserIdAndProductId(Long userId, Long productId) {
+//        return orderDetailRepository.countByUserIdAndProductId(userId, productId);
+//    }
+//
+//    public List<OrderDetail> getOrderDetails(Long userId, Long productId) {
+//        return orderDetailRepository.findByOrder_UserIdAndProductIdAndReviewedIsFalse(userId, productId);
+//    }
 
     public Long getTotalPrice(Long orderId) {
-        List<OrderDetail> ListofOrderDetail = orderDetailRepository.findOrderDetailsByOrder(
-            orderRepository.getReferenceById(orderId));
+        List<OrderDetail> ListofOrderDetail = orderDetailRepository.findOrderDetailsByOrderId(
+            orderId);
         Long totalPrice = 0L;
         for (OrderDetail orderDetail : ListofOrderDetail) {
             totalPrice += orderDetail.getPrice() * orderDetail.getQuantity();
@@ -148,14 +153,18 @@ public class OrderService {
         return totalPrice;
     }
 
-    public boolean checkOrderState(Long userId, Long productId) {
-        List<OrderDetail> orderDetails = orderDetailRepository.findByOrderUserIdAndProductId(userId, productId);
-        for (OrderDetail orderDetail : orderDetails) {
-            if (!orderDetail.getOrder().getState().equals(OrderState.NOTPAYED)) {
-                return true;
-            }
-        }
-        return false;
+//    public boolean checkOrderState(Long userId, Long productId) {
+//        List<OrderDetail> orderDetails = orderDetailRepository.findByOrderUserIdAndProductId(userId, productId);
+//        for (OrderDetail orderDetail : orderDetails) {
+//            if (!orderDetail.getOrder().getState().equals(OrderState.NOTPAYED)) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
+
+    public List<OrderDetail> getOrderDetails(Long userId, Long productId) {
+        return orderDetailRepository.findByUserIdAndProductIdAndReviewedIsFalse(userId, productId);
     }
 
     @Transactional
@@ -171,7 +180,7 @@ public class OrderService {
         Order order = new Order(userDetails.getUser().getId(),OrderState.NOTPAYED, addressId);
         orderRepository.save(order);
         for(Long key:basket.keySet()){
-            OrderDetail orderDetail= new OrderDetail(order,key,basket.get(key),productService.getProduct(key).getPrice(),productService.getProduct(key).getName());
+            OrderDetail orderDetail= new OrderDetail(order.getId(),key,basket.get(key),productService.getProduct(key).getPrice(),productService.getProduct(key).getName());
             orderDetailRepository.save(orderDetail);
             updateStock(key,basket.get(key));
         }
@@ -181,6 +190,10 @@ public class OrderService {
     public void updateStock(Long productId,Long quantity) throws ChangeSetPersister.NotFoundException {
         Product product =  productService.getProduct(productId);
         product.updateStockAfterOrder(quantity);
+    }
+
+    public Order getById(Long orderId){
+        return orderRepository.getById(orderId);
     }
 
 }
