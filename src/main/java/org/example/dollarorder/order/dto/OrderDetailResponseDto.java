@@ -15,7 +15,6 @@ import org.example.dollarorder.order.entity.OrderState;
 public class OrderDetailResponseDto {
     private Long productId;
     private Long quantity;
-    // private OrderState state;
     private String productName;
 
 

@@ -16,11 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/external")
 public class OrderFeignController {
+
     private final OrderService orderService;
-//    @GetMapping("/users/{userId}/products/{productId}")
-//    Long countByUserIdAndProductId(@PathVariable Long userId, @PathVariable Long productId){
-//        return orderService.countByUserIdAndProductId(userId, productId);
-//    }
 
     @GetMapping("/orders/{orderId}")
     Order getById(@PathVariable Long orderId){
