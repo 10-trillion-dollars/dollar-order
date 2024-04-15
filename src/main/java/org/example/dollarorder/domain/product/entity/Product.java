@@ -38,5 +38,21 @@ public class Product extends TimeStamped {
     private Long userId;
 
 
+    @Builder
+    public Product(String name, Long price, String description, Long stock,
+        Long userId) {
+        this.name = name;
+        this.price = price;
+        this.description = description;
+        this.stock = stock;
+        this.userId = userId;
+        this.state = true;
+    }
+
+    public void updateStockAfterOrder(Long quantity) {
+        this.stock = stock - quantity;
+    }
+
 
 }
+
