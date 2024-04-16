@@ -193,7 +193,7 @@ public class OrderService {
     }
 
     public Order getById(Long orderId){
-        return orderRepository.getById(orderId);
+        return orderRepository.findById(orderId).orElseThrow();
     }
 
 }

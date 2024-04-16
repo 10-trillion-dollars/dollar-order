@@ -4,6 +4,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.dollarorder.order.entity.Order;
 import org.example.dollarorder.order.entity.OrderDetail;
+import org.example.dollarorder.order.service.OrderAdminService;
 import org.example.dollarorder.order.service.OrderService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/external")
 public class OrderFeignController {
     private final OrderService orderService;
+    private final OrderAdminService orderAdminService;
 //    @GetMapping("/users/{userId}/products/{productId}")
 //    Long countByUserIdAndProductId(@PathVariable Long userId, @PathVariable Long productId){
 //        return orderService.countByUserIdAndProductId(userId, productId);
@@ -35,6 +37,11 @@ public class OrderFeignController {
     @PostMapping("/orders/orderDetail/reviewState")
     void saveOrderDetailReviewedState(@RequestBody OrderDetail orderDetail){
         orderService.saveOrderDetailReviewedState(orderDetail);
+    }
+
+    @GetMapping("/{productId}/orderDetails")
+    List<OrderDetail> findOrderDetailsByProductId(@PathVariable Long productId){
+        return orderAdminService.findOrderDetailsByProductId(productId);
     }
 
 }
