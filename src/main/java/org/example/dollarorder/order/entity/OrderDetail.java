@@ -15,8 +15,10 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -52,10 +54,5 @@ public class OrderDetail {
         this.orderId = orderId;
         this.price = price;
     }
-
-    public void setReviewed(boolean reviewed) {
-        this.reviewed = reviewed;
-    }
-
 
 }

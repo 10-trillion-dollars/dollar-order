@@ -47,8 +47,6 @@ public class KakaoPayService {
     @Value("${kakao.api.admin-key}")
     private String adminKey;
 
-
-
     @Transactional
     public PayReadyResDto getRedirectUrl(Long orderId){
         Order order = orderRepository.getReferenceById(orderId);
@@ -187,7 +185,7 @@ public class KakaoPayService {
                 }
             }
         }
-        // 여기까지
+
     }
 
 

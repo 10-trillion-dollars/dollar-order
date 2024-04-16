@@ -36,7 +36,6 @@ public class OrderService {
     private final OrderDetailRepository orderDetailRepository;
     private final ProductFeignClient productService;
     private final AddressFeignClient addressService;
-    private final EntityManager entityManager;
     private final RedissonClient redissonClient;
 
     @Transactional
@@ -77,7 +76,6 @@ public class OrderService {
     }
     @Transactional
     public void updateStockAndCreateOrderDetail(Long productId, Long quantity) {
-        //entityManager.clear();
         Product product = productService.getProduct(productId);
         System.out.println(product.getStock());
         Long stock = product.getStock();
@@ -135,14 +133,6 @@ public class OrderService {
         }
     }
 
-//    public long countByUserIdAndProductId(Long userId, Long productId) {
-//        return orderDetailRepository.countByUserIdAndProductId(userId, productId);
-//    }
-//
-//    public List<OrderDetail> getOrderDetails(Long userId, Long productId) {
-//        return orderDetailRepository.findByOrder_UserIdAndProductIdAndReviewedIsFalse(userId, productId);
-//    }
-
     public Long getTotalPrice(Long orderId) {
         List<OrderDetail> ListofOrderDetail = orderDetailRepository.findOrderDetailsByOrderId(
             orderId);
@@ -152,16 +142,6 @@ public class OrderService {
         }
         return totalPrice;
     }
-
-//    public boolean checkOrderState(Long userId, Long productId) {
-//        List<OrderDetail> orderDetails = orderDetailRepository.findByOrderUserIdAndProductId(userId, productId);
-//        for (OrderDetail orderDetail : orderDetails) {
-//            if (!orderDetail.getOrder().getState().equals(OrderState.NOTPAYED)) {
-//                return true;
-//            }
-//        }
-//        return false;
-//    }
 
     public List<OrderDetail> getOrderDetails(Long userId, Long productId) {
         return orderDetailRepository.findByUserIdAndProductIdAndReviewedIsFalse(userId, productId);
