@@ -25,7 +25,9 @@ public class OrderAdminService {
             order.changeState(OrderState.DELIVERED);
         } else if (requestState == 3) {
             order.changeState(OrderState.NOTPAYED);
-        }
+        } else if (requestState == 4) {
+        order.changeState(OrderState.CANCELLED);
+    }
         orderRepository.save(order);
     }
     public List<OrderDetail> findOrderDetailsByProductId(Long productId) {

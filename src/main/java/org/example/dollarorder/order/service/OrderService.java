@@ -1,6 +1,8 @@
 package org.example.dollarorder.order.service;
 
 import jakarta.persistence.EntityManager;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,10 +22,11 @@ import org.example.dollarorder.order.entity.OrderState;
 import org.example.dollarorder.order.repository.OrderDetailRepository;
 import org.example.dollarorder.order.repository.OrderRepository;
 import org.example.share.config.global.exception.BadRequestException;
+import org.example.share.config.global.exception.NotFoundException;
 import org.example.share.config.global.security.UserDetailsImpl;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.data.crossstore.ChangeSetPersister;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,147 +37,211 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
-    private final ProductFeignClient productService;
-    private final AddressFeignClient addressService;
+    private final AddressFeignClient addressFeignClient;
+    private final ProductFeignClient productFeignClient;
+    private final EntityManager entityManager;
     private final RedissonClient redissonClient;
 
-    @Transactional
-    public void createOrder(Map<Long, Long> basket, UserDetailsImpl userDetails, Long addressId)
-        throws Exception {
-        checkBasket(basket);
-        Order order = new Order(userDetails.getUser().getId(), OrderState.NOTPAYED, addressId);
-        order = orderRepository.save(order); // 저장된 order 객체를 다시 할당하여 ID를 포함하도록 함
-
-        for (Long productId : basket.keySet()) {
-            String lockKey = "product_lock:" + productId;
-            RLock lock = redissonClient.getLock(lockKey);
-            try {
-                boolean isLocked = lock.tryLock(5, 10, TimeUnit.SECONDS);
-                if (!isLocked) {
-                    throw new RuntimeException("락 획득에 실패했습니다.");
-                }
-                Product product = productService.getProduct(productId);
-                if (product.getStock() < basket.get(productId)) {
-                    throw new BadRequestException("상품 재고가 부족합니다. 상품 ID: " + productId);
-                }
-                OrderDetail orderDetail = new OrderDetail(order.getId(), productId, basket.get(productId),
-                    product.getPrice(), product.getName());
-                orderDetailRepository.save(orderDetail);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // 현재 스레드의 인터럽트 상태를 다시 설정
-                throw new RuntimeException("락 획득 중 오류가 발생했습니다.", e);
-            } catch (Exception e) {
-                log.error("결제 과정에서 예상치 못한 오류가 발생했습니다.", e.getMessage());
-                throw e;
+    public void createOrder(
+        Map<Long, Long> basket,
+        UserDetailsImpl userDetails,
+        Long addressId
+    ) {
+        String lockKey = "order_lock";
+        RLock lock = redissonClient.getLock(lockKey);
+        try {
+            boolean isLocked = lock.tryLock(5, 10, TimeUnit.SECONDS);
+            if (!isLocked) {
+                throw new RuntimeException("락 획득에 실패했습니다.");
             }
-            finally {
-                if (lock.isLocked()) {
-                    lock.unlock();
-                }
+            System.out.println(userDetails.getUser().getId()+"번 유저가 주문을 합니다.");
+            // 상품 수량 검증 코드
+            checkBasket(basket);
+
+            // 주문 객체 생성
+            Order order = new Order(userDetails.getUser().getId(), OrderState.NOTPAYED, addressId);
+
+            // 주문 객체 저장
+            orderRepository.save(order);
+
+            // 장바구니를 순회하며
+            // 주문한 상품과 상품 개수를 상품 상세정보 테이블에 업데이트
+            // 상품 테이블의 상품 수량 업데이트
+            for (Map.Entry<Long, Long> entry : basket.entrySet()) {
+                Long productId = entry.getKey();
+                Long quantity = entry.getValue();
+
+                // 상태를 업데이트하는 메서드
+                updateStockAndCreateOrderDetail(productId, quantity, order);
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException("락 획득 중 오류가 발생했습니다.", e);
+        } finally {
+            if (lock.isLocked()) {
+                lock.unlock();
             }
         }
     }
+
+    //상태를 업데이트하는 메서드
     @Transactional
-    public void updateStockAndCreateOrderDetail(Long productId, Long quantity) {
-        Product product = productService.getProduct(productId);
-        System.out.println(product.getStock());
-        Long stock = product.getStock();
-        // 재고 확인
-        if (quantity > stock) {
-            throw new BadRequestException("상품 재고가 부족합니다. 상품 ID: " + productId);
-        }
+    public void updateStockAndCreateOrderDetail(Long productId, Long quantity, Order order) {
+        //영속성 컨텍스트를 초기화
+        entityManager.clear();
+        //상품 객체 생성
+        Product product = productFeignClient.getProduct(productId);
+        //상품 수량 수정
         product.updateStockAfterOrder(quantity);
-        productService.save(product);
+        System.out.println("현재 상품 수량: " + product.getStock());
+        //수정된 상품 저장
+        productFeignClient.save(product);
+        //상품 상세정보 객체 저장
+        OrderDetail orderDetail = new OrderDetail(order.getId(), productId, quantity, product.getPrice(), product.getName());
+        orderDetailRepository.save(orderDetail);
     }
 
-    public List<OrderDetailResponseDto> getOrderDetailList(Long orderId) {
+    public List<OrderDetailResponseDto> getOrderDetailList(
+        Long orderId
+    ) {
         List<OrderDetail> listOfOrderedProducts = orderDetailRepository.findOrderDetailsByOrderId(
             orderId);
         return listOfOrderedProducts.stream().map(OrderDetailResponseDto::new).toList();
     }
-
-
     @Transactional
-    public void deleteOrder(Long orderId) {
-        orderDetailRepository.deleteAll(
-            orderDetailRepository.findOrderDetailsByOrderId(orderId));
-        orderRepository.delete(orderRepository.getById(orderId));
+    public void deleteOrder(
+        Long orderId
+    ){
+        orderDetailRepository.deleteAll(orderDetailRepository.findOrderDetailsByOrderId(orderId));
+        Order order = orderRepository.findById(orderId).orElseThrow(()->new NotFoundException("주문을 찾을 수 없습니다."));
+        orderRepository.delete(order);
+    }
+    public boolean checkUser(
+        UserDetailsImpl userDetails,
+        Long orderId
+    ){
+        Order order = orderRepository.findById(orderId).orElseThrow(()->new NotFoundException("주문을 찾을 수 없습니다"));
+        return Objects.equals(userDetails.getUser().getId(),order.getUserId());
     }
 
-    public boolean checkUser(UserDetailsImpl userDetails, Long orderId) {
-        return Objects.equals(userDetails.getUser().getId(),
-            orderRepository.getById(orderId).getUserId());
-    }
 
-    public boolean checkStock(Long productId, Long quantity) {
-        Long stock = productService.getProduct(productId).getStock();
-        if (stock < 1) {
-            throw new RuntimeException();
+    public void checkBasket(Map<Long, Long> basket) {
+        for (Map.Entry<Long, Long> entry : basket.entrySet()) {
+            Long productId = entry.getKey();
+            Long quantity = entry.getValue();
+
+            Long stock = productFeignClient.getProduct(productId).getStock();
+            if (stock == 0) {
+                System.out.println("재고부족");
+                throw new BadRequestException("상품 ID: " + productId + ", 재고가 없습니다.");
+
+            }
+            if (stock < quantity) {
+                System.out.println("재고부족2");
+                throw new BadRequestException(
+                    "상품 ID: " + productId + ", 재고가 부족합니다. 요청 수량: " + quantity + ", 현재 재고: "
+                        + stock);
+            }
         }
-        return stock - quantity >= 0;
     }
 
-    public List<OrderResponseDto> getOrderList(UserDetailsImpl userDetails) {
+    //주문서 조회 메서드
+    public List<OrderResponseDto> getOrderList(
+        UserDetailsImpl userDetails
+    ) {
         List<Order> orderList = orderRepository.findOrdersByUserId(userDetails.getUser().getId());
         List<OrderResponseDto> ResponseList = new ArrayList<OrderResponseDto>();
         for (Order order : orderList) {
-            Address address = addressService.findOne(order.getAddressId());
+            Address address = addressFeignClient.findOne(order.getAddressId());
             OrderResponseDto orderResponseDto = new OrderResponseDto(order, address);
             ResponseList.add(orderResponseDto);
         }
         return ResponseList;
     }
 
-    public void checkBasket(Map<Long, Long> basket) throws Exception {
-        for (Long key : basket.keySet()) {
-            if (!checkStock(key, basket.get(key))) {
-                throw new Exception("id:" + key + " 수량부족");
-            }
-        }
-    }
-
-    public Long getTotalPrice(Long orderId) {
-        List<OrderDetail> ListofOrderDetail = orderDetailRepository.findOrderDetailsByOrderId(
-            orderId);
+    //가격의 합을 계산하는 메서드
+    public Long getTotalPrice(
+        Long orderId
+    ) {
+        List<OrderDetail> ListofOrderDetail = orderDetailRepository.findOrderDetailsByOrderId(orderId);
         Long totalPrice = 0L;
         for (OrderDetail orderDetail : ListofOrderDetail) {
             totalPrice += orderDetail.getPrice() * orderDetail.getQuantity();
         }
         return totalPrice;
     }
-
-    public List<OrderDetail> getOrderDetails(Long userId, Long productId) {
+    //주문 상세를 조회 하는 메서드
+    public List<OrderDetail> getOrderDetails(
+        Long userId,
+        Long productId
+    ) {
         return orderDetailRepository.findByUserIdAndProductIdAndReviewedIsFalse(userId, productId);
     }
 
     @Transactional
-    public void saveOrderDetailReviewedState(OrderDetail orderDetail){
+    public void saveOrderDetailReviewedState(
+        OrderDetail orderDetail
+    ) {
         orderDetail.setReviewed(true);
         orderDetailRepository.save(orderDetail);
     }
 
+    //**********************스케쥴 메서드*************************//
+    @Scheduled(fixedDelay = 100000) // 5분에 한번씩 실행
+    public void cancelUnpaidOrdersAndRestoreStock(
+    ) {
+        //시간 설정 변수 선언
+        LocalDateTime MinutesAgo = LocalDateTime.now().minus(1, ChronoUnit.MINUTES);
+        // MinutesAgo 변수 설정 시간 이상 미결제 주문 조회
+        List<Order> unpaidOrders = orderRepository.findUnpaidOrdersOlderThan(MinutesAgo);
+        //일정 시간이 지난 order 리스트를 순회 하며 주문을 취소 시키고 재고를 복구함
+        for (Order order : unpaidOrders) {
+            if (order.getState() == OrderState.NOTPAYED) {
+                order.changeState(OrderState.CANCELLED);
+                orderRepository.save(order);
+                restoreStock(order); // 재고 복구 로직
+            }
+        }
+    }
 
     @Transactional
-    public Long createOrderTest(Map<Long,Long> basket,UserDetailsImpl userDetails,Long addressId) throws Exception {
-        checkBasket(basket);
-        Order order = new Order(userDetails.getUser().getId(),OrderState.NOTPAYED, addressId);
-        orderRepository.save(order);
-        for(Long key:basket.keySet()){
-            OrderDetail orderDetail= new OrderDetail(order.getId(),key,basket.get(key),productService.getProduct(key).getPrice(),productService.getProduct(key).getName());
-            orderDetailRepository.save(orderDetail);
-            updateStock(key,basket.get(key));
+    public void restoreStock(
+        Order order
+    ) {
+        //주문서의 id를 가진 주문 상세를 가져옴
+        List<OrderDetail> orderDetails = orderDetailRepository.findByOrderId(order.getId());
+        //주문 상세표들을 순회
+        for (OrderDetail detail : orderDetails) {
+            //100명이 한꺼번에 주문하면 한꺼번에 취소하는 상황에도 동시성이 필요함
+            //락 적용
+            String lockKey = "productLock:" + detail.getProductId();
+            RLock rLock = redissonClient.getLock(lockKey);
+            boolean isLocked = false;
+
+            try {
+                isLocked = rLock.tryLock(5, 10, TimeUnit.SECONDS);
+                if (!isLocked) {
+                    throw new RuntimeException("Unable to lock the product stock for product ID: "
+                        + detail.getProductId());
+                }
+                //주문 상세에 있는 상품 객체를 불러옴
+                //상품 객체의 수량을 복구
+                Product product = productFeignClient.getProduct(detail.getProductId());
+                product.updateStockAfterOrder(-detail.getQuantity());
+                System.out.println("복구" + product.getStock());
+                productFeignClient.save(product);
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Lock acquisition interrupted", e);
+
+            } finally {
+                if (isLocked && rLock.isLocked()) {
+                    rLock.unlock();
+                }
+            }
         }
-        return order.getId();
     }
-
-    public void updateStock(Long productId,Long quantity) throws ChangeSetPersister.NotFoundException {
-        Product product =  productService.getProduct(productId);
-        product.updateStockAfterOrder(quantity);
-    }
-
     public Order getById(Long orderId){
         return orderRepository.findById(orderId).orElseThrow();
     }
-
 }
-

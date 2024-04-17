@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/external")
 public class OrderFeignController {
+
     private final OrderService orderService;
     private final OrderAdminService orderAdminService;
 //    @GetMapping("/users/{userId}/products/{productId}")
@@ -25,23 +26,22 @@ public class OrderFeignController {
 //    }
 
     @GetMapping("/orders/{orderId}")
-    Order getById(@PathVariable Long orderId){
+    Order getById(@PathVariable Long orderId) {
         return orderService.getById(orderId);
     }
 
     @GetMapping("/users/{userId}/products/{productId}/orders")
-    List<OrderDetail> getOrderDetails(@PathVariable Long userId, @PathVariable Long productId){
+    List<OrderDetail> getOrderDetails(@PathVariable Long userId, @PathVariable Long productId) {
         return orderService.getOrderDetails(userId, productId);
     }
 
     @PostMapping("/orders/orderDetail/reviewState")
-    void saveOrderDetailReviewedState(@RequestBody OrderDetail orderDetail){
+    void saveOrderDetailReviewedState(@RequestBody OrderDetail orderDetail) {
         orderService.saveOrderDetailReviewedState(orderDetail);
     }
 
     @GetMapping("/{productId}/orderDetails")
-    List<OrderDetail> findOrderDetailsByProductId(@PathVariable Long productId){
+    List<OrderDetail> findOrderDetailsByProductId(@PathVariable Long productId) {
         return orderAdminService.findOrderDetailsByProductId(productId);
     }
-
 }
