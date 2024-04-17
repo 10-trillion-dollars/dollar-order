@@ -8,14 +8,10 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
- @FeignClient(name = "dollar-user", url = "https://user.10-trillon-dollars.com/external")
+@FeignClient(name = "dollar-user", url = "https://user.10-trillon-dollars.com/external")
 //@FeignClient(name = "dollar-user", url = "http://localhost:8082/external")
 public interface AddressFeignClient {
-
     @GetMapping("/address/{addressId}")
-    @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 1000, maxDelay = 5000)
-        , noRetryFor = {FeignClientException.class}
-    )
     Address findOne(@PathVariable Long addressId);
 
 }
