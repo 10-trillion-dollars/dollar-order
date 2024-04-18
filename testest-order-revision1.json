@@ -1,0 +1,110 @@
+{
+    "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:975050182378:task-definition/testest-order:1",
+    "containerDefinitions": [
+        {
+            "name": "testest-container",
+            "image": "975050182378.dkr.ecr.ap-northeast-2.amazonaws.com/10-trillion-dollars:order",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "name": "testest-container-8084",
+                    "containerPort": 8084,
+                    "hostPort": 8084,
+                    "protocol": "tcp",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "kakao.api.admin-key",
+                    "value": "8745deda04b6dc8c5c731bb3f5f61d03"
+                },
+                {
+                    "name": "rds.password",
+                    "value": "1234qwer"
+                },
+                {
+                    "name": "redis.host",
+                    "value": "redis-dev.msr86t.ng.0001.apn2.cache.amazonaws.com"
+                },
+                {
+                    "name": "rds.host",
+                    "value": "jdbc:mysql://team-database.cluwm6cyw12w.ap-northeast-2.rds.amazonaws.com:3306/teamdb?serverTimezone=UTC&characterEncoding=UTF-8"
+                },
+                {
+                    "name": "rds.username",
+                    "value": "admin"
+                },
+                {
+                    "name": "jwt.secret.key",
+                    "value": "7Iqk7YyM66W07YOA7L2U65Sp7YG065+9U3ByaW5n6rCV7J2Y7Yqc7YSw7LWc7JuQ67mI7J6F64uI64ukLg=="
+                }
+            ],
+            "environmentFiles": [],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "ulimits": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-create-group": "true",
+                    "awslogs-group": "/ecs/testest-order",
+                    "awslogs-region": "ap-northeast-2",
+                    "awslogs-stream-prefix": "ecs"
+                },
+                "secretOptions": []
+            },
+            "systemControls": []
+        }
+    ],
+    "family": "testest-order",
+    "executionRoleArn": "arn:aws:iam::975050182378:role/ecsTaskExecutionRole",
+    "networkMode": "awsvpc",
+    "revision": 1,
+    "volumes": [],
+    "status": "ACTIVE",
+    "requiresAttributes": [
+        {
+            "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+        },
+        {
+            "name": "ecs.capability.execution-role-awslogs"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.ecr-auth"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+        },
+        {
+            "name": "ecs.capability.execution-role-ecr-pull"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+        },
+        {
+            "name": "ecs.capability.task-eni"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.29"
+        }
+    ],
+    "placementConstraints": [],
+    "compatibilities": [
+        "EC2",
+        "FARGATE"
+    ],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "1024",
+    "memory": "3072",
+    "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+    },
+    "registeredAt": "2024-04-17T14:35:08.077Z",
+    "registeredBy": "arn:aws:iam::975050182378:user/joo",
+    "tags": []
+}
