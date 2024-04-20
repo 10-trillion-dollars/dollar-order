@@ -11,7 +11,7 @@
 
     <!-- logstash appender 정의 -->
     <appender name="logstash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-        <destination>localhost:5000</destination>
+        <destination>${elk.server}</destination>
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
             <providers>
                 <mdc />
@@ -21,7 +21,7 @@
                 <pattern>
                     <pattern>
                         {
-                        "app": "MS-ORDER"
+                        "app": "ms-order"
                         }
                     </pattern>
                 </pattern>

@@ -27,3 +27,6 @@ kakao:
     
 server:
   port: 8084
+
+elk:
+  server: ${elk.server}
