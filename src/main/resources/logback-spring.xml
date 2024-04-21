@@ -11,7 +11,7 @@
 
     <!-- logstash appender 정의 -->
     <appender name="logstash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-        <destination>${elk.server}</destination>
+        <destination>${destination}</destination>
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
             <providers>
                 <mdc />

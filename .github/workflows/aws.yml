@@ -62,5 +62,5 @@ jobs:
           script: |
             sudo docker stop $(sudo docker ps -q --filter ancestor=jw059/order)
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/order
-            sudo docker run --platform linux/amd64 -d -p 8084:8084 ${{ secrets.DOCKERHUB_USERNAME }}/order
+            sudo docker run --platform linux/amd64 -d -e destination=${{ secrets.DESTINATION }} -p 8084:8084 ${{ secrets.DOCKERHUB_USERNAME }}/order
             sudo docker image prune -f
