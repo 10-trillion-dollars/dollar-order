@@ -51,6 +51,8 @@ dependencies {
 
 	//아마존 SES
 	implementation 'software.amazon.awssdk:ses:2.25.34'
+	//smtp
+	implementation 'com.sun.mail:javax.mail:1.6.2'
 }
 
 dependencyManagement {

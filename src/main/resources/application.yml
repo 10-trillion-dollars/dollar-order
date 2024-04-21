@@ -6,6 +6,8 @@ spring:
     username: ${rds.username}
     password: ${rds.password}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -16,15 +18,23 @@ spring:
         use_sql_comments: true
   data:
     redis:
-#      host: ${redis.host}
       host: localhost
       port: 6379
+
 jwt:
   key: ${jwt.secret.key}
-  
+
 kakao:
   api:
     admin-key: ${kakao.api.admin-key}
-    
+
 server:
   port: 8084
+
+destination: ${elk}
+
+aws:
+  access:
+    key: ${access.key.id}
+  secret:
+    key: ${aws.secret.key}
