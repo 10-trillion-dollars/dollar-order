@@ -30,11 +30,10 @@ kakao:
 
 server:
   port: 8084
-
-destination: ${elk}
-
 aws:
   access:
     key: ${access.key.id}
   secret:
     key: ${aws.secret.key}
+
+destination: ${elk}
