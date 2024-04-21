@@ -2,6 +2,7 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/base.xml"/>
 
+
     <!-- console appender 정의 -->
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
