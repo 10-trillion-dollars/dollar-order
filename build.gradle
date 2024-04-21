@@ -48,6 +48,9 @@ dependencies {
 
 	implementation 'org.springframework.boot:spring-boot-starter'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	//아마존 SES
+	implementation 'software.amazon.awssdk:ses:2.25.34'
 }
 
 dependencyManagement {
