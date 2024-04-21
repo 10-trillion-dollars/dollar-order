@@ -16,7 +16,8 @@ spring:
         use_sql_comments: true
   data:
     redis:
-      host: ${redis.host}
+#      host: ${redis.host}
+      host: localhost
       port: 6379
 jwt:
   key: ${jwt.secret.key}
