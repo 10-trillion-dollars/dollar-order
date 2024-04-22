@@ -241,7 +241,7 @@ public class OrderService {
             }
         }
     }
-    public Order getById(Long orderId){
-        return orderRepository.findById(orderId).orElseThrow();
+    public List<Order> getById(List<Long> orderIdList){
+        return orderRepository.findAllByOrderId(orderIdList);
     }
 }

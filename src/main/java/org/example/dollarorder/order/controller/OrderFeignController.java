@@ -25,10 +25,13 @@ public class OrderFeignController {
 //        return orderService.countByUserIdAndProductId(userId, productId);
 //    }
 
-    @GetMapping("/orders/{orderId}")
-    Order getById(@PathVariable Long orderId) {
-        return orderService.getById(orderId);
+    @GetMapping("/orders")
+    List<Order> getById(@RequestBody List<Long> orderIdList) {
+        return orderService.getById(orderIdList);
     }
+
+//    @GetMapping("/orders/{orderId}")
+//    List<Order> getAllById(List<OrderDetail> orderDetails);
 
     @GetMapping("/users/{userId}/products/{productId}/orders")
     List<OrderDetail> getOrderDetails(@PathVariable Long userId, @PathVariable Long productId) {
