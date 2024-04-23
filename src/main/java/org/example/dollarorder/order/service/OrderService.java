@@ -185,12 +185,12 @@ public class OrderService {
         orderDetailRepository.save(orderDetail);
     }
 
-    //**********************스케쥴 메서드*************************//
-    @Scheduled(fixedDelay = 100000) // 5분에 한번씩 실행
+//**********************스케쥴 메서드 수정*************************//
+    @Scheduled(fixedDelay = 300000) // 5분에 한번씩 실행
     public void cancelUnpaidOrdersAndRestoreStock(
     ) {
         //시간 설정 변수 선언
-        LocalDateTime MinutesAgo = LocalDateTime.now().minus(1, ChronoUnit.MINUTES);
+        LocalDateTime MinutesAgo = LocalDateTime.now().minus(5, ChronoUnit.MINUTES);
         // MinutesAgo 변수 설정 시간 이상 미결제 주문 조회
         List<Order> unpaidOrders = orderRepository.findUnpaidOrdersOlderThan(MinutesAgo);
         //일정 시간이 지난 order 리스트를 순회 하며 주문을 취소 시키고 재고를 복구함
@@ -202,7 +202,6 @@ public class OrderService {
             }
         }
     }
-
     @Transactional
     public void restoreStock(
         Order order
