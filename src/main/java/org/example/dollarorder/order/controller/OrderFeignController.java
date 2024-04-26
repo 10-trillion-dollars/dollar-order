@@ -1,6 +1,7 @@
 package org.example.dollarorder.order.controller;
 
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.example.dollarorder.order.entity.Order;
 import org.example.dollarorder.order.entity.OrderDetail;
@@ -25,6 +26,23 @@ public class OrderFeignController {
 //        return orderService.countByUserIdAndProductId(userId, productId);
 //    }
 
+    // 쿼리 개선 후
+    @PostMapping("/productLists/orderDetails")
+    List<OrderDetail> findOrderDetailsByProductId(@RequestBody List<Long> productIdList) {
+        return orderAdminService.findOrderDetailsByProductId(productIdList);
+    }
+
+    @PostMapping("/orders")
+    Map<Long, Order> getAllById(@RequestBody List<Long> orderIdList) {
+        return orderService.getAllById(orderIdList);
+    }
+
+    // 쿼리 개선 전
+    @GetMapping("/{productId}/orderDetails")
+    List<OrderDetail> XfindOrderDetailsByProductId(@PathVariable Long productId) {
+        return orderAdminService.XfindOrderDetailsByProductId(productId);
+    }
+
     @GetMapping("/orders/{orderId}")
     Order getById(@PathVariable Long orderId) {
         return orderService.getById(orderId);
@@ -40,8 +58,8 @@ public class OrderFeignController {
         orderService.saveOrderDetailReviewedState(orderDetail);
     }
 
-    @GetMapping("/{productId}/orderDetails")
-    List<OrderDetail> findOrderDetailsByProductId(@PathVariable Long productId) {
-        return orderAdminService.findOrderDetailsByProductId(productId);
-    }
+
+
+
+
 }
