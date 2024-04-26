@@ -9,14 +9,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-public class OrderTest {
+public class FeignTest {
 
     //실행하기 전에 FeignClient에 url이 local인지 확인
     //각 서버가 실행이 되고 있는지 확인
 
     @Test
-    @DisplayName("Order 통신 테스트")
-    public void OrderFeigntest() {
+    @DisplayName("getProduct api 통신 테스트")
+    public void ProductFeigntest() {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Product> response = restTemplate
                 .getForEntity("http://localhost:8083/external/products/1", Product.class);
@@ -25,7 +25,7 @@ public class OrderTest {
     }
 
     @Test
-    @DisplayName("Address 통신 테스트")
+    @DisplayName("findOne api 통신 테스트")
     public void AddressFeigntest() {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Address> response = restTemplate
