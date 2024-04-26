@@ -192,9 +192,8 @@ public class OrderService {
         orderDetailRepository.save(orderDetail);
     }
 
-    //**********************스케쥴 메서드*************************//
+
     @Transactional
-    @Scheduled(fixedDelay = 10000) // 5분에 한번씩 실행
 //**********************스케쥴 메서드 수정*************************//
     @Scheduled(fixedDelay = 300000) // 5분에 한번씩 실행
     public void cancelUnpaidOrdersAndRestoreStock(
