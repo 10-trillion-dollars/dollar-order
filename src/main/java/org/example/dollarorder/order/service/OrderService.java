@@ -195,6 +195,8 @@ public class OrderService {
     //**********************스케쥴 메서드*************************//
     @Transactional
     @Scheduled(fixedDelay = 10000) // 5분에 한번씩 실행
+//**********************스케쥴 메서드 수정*************************//
+    @Scheduled(fixedDelay = 300000) // 5분에 한번씩 실행
     public void cancelUnpaidOrdersAndRestoreStock(
     ) {
         //시간 설정 변수 선언
@@ -207,12 +209,6 @@ public class OrderService {
                 order.changeState(OrderState.CANCELLED);
                 orderRepository.save(order);
                 restoreStock(order); // 재고 복구 로직
-                User user = addressFeignClient.getUser(order.getUserId());
-                String email = user.getEmail();// 주문한 사용자의 이메일 주소 가져오기
-                OrderDetail orderDetail = orderDetailRepository.findOrderDetailByOrderId(order.getId());
-                String orderDetails = "Order ID: " + orderDetail.getProductName(); // 주문 상세 내용
-                emailService.sendCancellationEmail(email, orderDetails,
-                    EmailType.PAYMENT_TIMEOUT); // 취소 이메일 발송
             }
         }
     }
