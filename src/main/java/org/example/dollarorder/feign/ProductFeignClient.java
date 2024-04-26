@@ -2,6 +2,8 @@ package org.example.dollarorder.feign;
 
 import feign.FeignException;
 import feign.FeignException.FeignClientException;
+import java.util.List;
+import java.util.Map;
 import org.example.dollarorder.domain.product.entity.Product;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,8 +16,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-//@FeignClient(name = "dollar-product", url = "https://product.10-trillon-dollars.com/external")
-@FeignClient(name = "dollar-product", url = "http://localhost:8083/external")
+@FeignClient(name = "dollar-product", url = "${loadbalancer.product}/external")
+//@FeignClient(name = "dollar-product", url = "http://localhost:8083/external")
 public interface ProductFeignClient {
 
     @GetMapping("/products/{productId}")
@@ -33,5 +35,11 @@ public interface ProductFeignClient {
         Logger logger = LoggerFactory.getLogger(ProductFeignClient.class);
         logger.error("All retries failed., error = {}", e.getMessage());
     }
-}
 
+
+    @PostMapping("/products/saveBulk")
+    void saveBulk(@RequestBody List<Product> productList);
+
+    @PostMapping("/products/updateBulk")
+    void updateStockAfterOrder(@RequestBody Map<Long, Long> basket);
+}

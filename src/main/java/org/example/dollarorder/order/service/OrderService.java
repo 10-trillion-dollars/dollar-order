@@ -3,11 +3,11 @@ package org.example.dollarorder.order.service;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dollarorder.domain.address.entity.Address;
@@ -19,6 +19,7 @@ import org.example.dollarorder.order.dto.OrderResponseDto;
 import org.example.dollarorder.order.entity.Order;
 import org.example.dollarorder.order.entity.OrderDetail;
 import org.example.dollarorder.order.entity.OrderState;
+import org.example.dollarorder.order.repository.OrderDetailBulkRepository;
 import org.example.dollarorder.order.repository.OrderDetailRepository;
 import org.example.dollarorder.order.repository.OrderRepository;
 import org.example.dollarorder.order.service.EmailService.EmailType;
@@ -39,11 +40,16 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
+    private final OrderDetailBulkRepository orderDetailBulkRepository;
     private final AddressFeignClient addressFeignClient;
     private final ProductFeignClient productFeignClient;
     private final EntityManager entityManager;
     private final RedissonClient redissonClient;
+
+    // todo : for 문안에서 N+1 save 발생!! 해결할것!
+
     private final EmailService emailService;
+
     @Transactional
     public void createOrder(
         Map<Long, Long> basket,
@@ -83,7 +89,8 @@ public class OrderService {
         }
     }
 
-    //상태를 업데이트하는 메서드
+
+//    상태를 업데이트하는 메서드
     @Transactional
     public void updateStockAndCreateOrderDetail(Long productId, Long quantity, Order order) {
         //영속성 컨텍스트를 초기화
@@ -123,7 +130,6 @@ public class OrderService {
         return Objects.equals(userDetails.getUser().getId(),order.getUserId());
     }
 
-
     public void checkBasket(Map<Long, Long> basket, Order order) {
         for (Map.Entry<Long, Long> entry : basket.entrySet()) {
             Long productId = entry.getKey();
@@ -135,16 +141,16 @@ public class OrderService {
             Long stock = productFeignClient.getProduct(productId).getStock();
             if (stock == 0) {
                 System.out.println("재고부족");
-//                emailService.sendCancellationEmail(email, orderDetails,
-//                    EmailType.STOCK_OUT); // 취소 이메일 발송
-//                emailService.saveStock_Out_UserInfoToRedis(email, productId);
+                emailService.sendCancellationEmail(email, orderDetails,
+                    EmailType.STOCK_OUT); // 취소 이메일 발송
+                emailService.saveStock_Out_UserInfoToRedis(email, productId);
                 throw new BadRequestException("상품 ID: " + productId + ", 재고가 없습니다.");
             }
             if (stock < quantity) {
                 System.out.println("재고부족2");
-//                emailService.sendCancellationEmail(email, orderDetails,
-//                    EmailType.STOCK_OUT); // 취소 이메일 발송
-//                emailService.saveStock_Out_UserInfoToRedis(email, productId);
+                emailService.sendCancellationEmail(email, orderDetails,
+                    EmailType.STOCK_OUT); // 취소 이메일 발송
+                emailService.saveStock_Out_UserInfoToRedis(email, productId);
                 throw new BadRequestException(
                     "상품 ID: " + productId + ", 재고가 부족합니다. 요청 수량: " + quantity + ", 현재 재고: "
                         + stock);
@@ -193,9 +199,10 @@ public class OrderService {
         orderDetailRepository.save(orderDetail);
     }
 
-    //**********************스케쥴 메서드*************************//
+
     @Transactional
-    @Scheduled(fixedDelay = 10000) // 5분에 한번씩 실행
+//**********************스케쥴 메서드 수정*************************//
+    @Scheduled(fixedDelay = 300000) // 5분에 한번씩 실행
     public void cancelUnpaidOrdersAndRestoreStock(
     ) {
         //시간 설정 변수 선언
@@ -208,11 +215,11 @@ public class OrderService {
                 order.changeState(OrderState.CANCELLED);
                 orderRepository.save(order);
                 restoreStock(order); // 재고 복구 로직
-                //User user = addressFeignClient.getUser(order.getUserId());
-                //String email = user.getEmail();// 주문한 사용자의 이메일 주소 가져오기
-                //OrderDetail orderDetail = orderDetailRepository.findOrderDetailByOrderId(order.getId());
-                //String orderDetails = "Order ID: " + orderDetail.getProductName(); // 주문 상세 내용
-                //emailService.sendCancellationEmail(email, orderDetails,EmailType.PAYMENT_TIMEOUT); // 취소 이메일 발송
+                User user = addressFeignClient.getUser(order.getUserId());
+                String email = user.getEmail();// 주문한 사용자의 이메일 주소 가져오기
+                OrderDetail orderDetail = orderDetailRepository.findOrderDetailByOrderId(order.getId());
+                String orderDetails = "Order ID: " + orderDetail.getProductName(); // 주문 상세 내용
+                emailService.sendCancellationEmail(email, orderDetails,EmailType.PAYMENT_TIMEOUT); // 취소 이메일 발송
             }
         }
     }
@@ -255,8 +262,19 @@ public class OrderService {
             }
         }
     }
-    public Order getById(Long orderId) {
-        return orderRepository.findById(orderId).orElseThrow();}
+    public Order getById(Long orderId){
+        return orderRepository.findById(orderId).orElseThrow();
+    }
 
+    public Map<Long, Order> getAllById(List<Long> orderIdList){
+        List<Order> orderList = orderRepository.findAllByOrderId(orderIdList);
 
+        Map<Long, Order> orderMap = new HashMap<>();
+
+        for (int i=0; i<orderIdList.size(); i++){
+            orderMap.put(orderIdList.get(i), orderList.get(i));
+        }
+
+        return orderMap;
+    }
 }

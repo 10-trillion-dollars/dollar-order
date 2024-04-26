@@ -18,16 +18,15 @@ spring:
         use_sql_comments: true
   data:
     redis:
-      host: localhost
+      host: ${redis.host}
       port: 6379
-
 jwt:
   key: ${jwt.secret.key}
-
+  
 kakao:
   api:
     admin-key: ${kakao.api.admin-key}
-
+    
 server:
   port: 8084
 aws:
@@ -37,3 +36,7 @@ aws:
     key: ${aws.secret.key}
 
 destination: ${elk}
+
+loadbalancer:
+  user: ${load.user}
+  product: ${load.product}
