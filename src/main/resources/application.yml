@@ -28,3 +28,7 @@ kakao:
     
 server:
   port: 8084
+
+loadbalancer:
+  user: ${load.user}
+  product: ${load.product}

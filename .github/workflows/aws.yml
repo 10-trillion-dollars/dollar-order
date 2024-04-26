@@ -28,6 +28,8 @@ jobs:
           spring.data.redis.host: ${{ secrets.REDIS_HOST }}
           jwt.key: ${{ secrets.JWT_KEY }}
           kakao.api.admin-key: ${{ secrets.KAKAO_ADMIN_KEY }}
+          loadbalancer.user: ${{ secrets.LOADBALANCER_USER }}
+          loadbalancer.product: ${{ secrets.LOADBALANCER_PRODUCT }}
 
 
       - name: Grant execute permission for gradlew
@@ -60,6 +62,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 22
           script: |
+            sudo docker stop $(sudo docker ps -q --filter ancestor=jw059/order)
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/order
-            sudo docker run --platform linux/amd64 -d -p 8084:8084 ${{ secrets.DOCKERHUB_USERNAME }}/order
+            sudo docker run --platform linux/amd64 -d -e destination=${{ secrets.DESTINATION }} -p 8084:8084 ${{ secrets.DOCKERHUB_USERNAME }}/order
             sudo docker image prune -f

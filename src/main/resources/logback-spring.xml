@@ -2,6 +2,7 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/base.xml"/>
 
+
     <!-- console appender 정의 -->
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -11,7 +12,7 @@
 
     <!-- logstash appender 정의 -->
     <appender name="logstash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-        <destination>localhost:5000</destination>
+        <destination>${destination}</destination>
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
             <providers>
                 <mdc />
@@ -21,7 +22,7 @@
                 <pattern>
                     <pattern>
                         {
-                        "app": "MS-ORDER"
+                        "app": "ms-order"
                         }
                     </pattern>
                 </pattern>
