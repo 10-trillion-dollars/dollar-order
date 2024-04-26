@@ -1,13 +1,12 @@
 package org.example.dollarorder.order.controller;
 
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.example.dollarorder.order.entity.Order;
 import org.example.dollarorder.order.entity.OrderDetail;
-import org.example.dollarorder.order.service.NotificationService;
 import org.example.dollarorder.order.service.OrderAdminService;
 import org.example.dollarorder.order.service.OrderService;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,11 +21,27 @@ public class OrderFeignController {
 
     private final OrderService orderService;
     private final OrderAdminService orderAdminService;
-    private final NotificationService notificationService;
 //    @GetMapping("/users/{userId}/products/{productId}")
 //    Long countByUserIdAndProductId(@PathVariable Long userId, @PathVariable Long productId){
 //        return orderService.countByUserIdAndProductId(userId, productId);
 //    }
+
+    // 쿼리 개선 후
+    @PostMapping("/productLists/orderDetails")
+    List<OrderDetail> findOrderDetailsByProductId(@RequestBody List<Long> productIdList) {
+        return orderAdminService.findOrderDetailsByProductId(productIdList);
+    }
+
+    @PostMapping("/orders")
+    Map<Long, Order> getAllById(@RequestBody List<Long> orderIdList) {
+        return orderService.getAllById(orderIdList);
+    }
+
+    // 쿼리 개선 전
+    @GetMapping("/{productId}/orderDetails")
+    List<OrderDetail> XfindOrderDetailsByProductId(@PathVariable Long productId) {
+        return orderAdminService.XfindOrderDetailsByProductId(productId);
+    }
 
     @GetMapping("/orders/{orderId}")
     Order getById(@PathVariable Long orderId) {
@@ -43,15 +58,8 @@ public class OrderFeignController {
         orderService.saveOrderDetailReviewedState(orderDetail);
     }
 
-    @GetMapping("/{productId}/orderDetails")
-    List<OrderDetail> findOrderDetailsByProductId(@PathVariable Long productId) {
-        return orderAdminService.findOrderDetailsByProductId(productId);
-    }
-    @GetMapping("/notify-stock-update/{productId}/{productName}")
-    public ResponseEntity<String> notifyStockUpdate(
-        @PathVariable Long productId,
-        @PathVariable String productName) {
-        notificationService.notifyStockUpdate(productId, productName);
-        return ResponseEntity.ok("Stock update notification sent successfully");
-    }
+
+
+
+
 }

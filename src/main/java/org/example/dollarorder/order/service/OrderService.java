@@ -3,6 +3,7 @@ package org.example.dollarorder.order.service;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -18,6 +19,7 @@ import org.example.dollarorder.order.dto.OrderResponseDto;
 import org.example.dollarorder.order.entity.Order;
 import org.example.dollarorder.order.entity.OrderDetail;
 import org.example.dollarorder.order.entity.OrderState;
+import org.example.dollarorder.order.repository.OrderDetailBulkRepository;
 import org.example.dollarorder.order.repository.OrderDetailRepository;
 import org.example.dollarorder.order.repository.OrderRepository;
 import org.example.dollarorder.order.service.EmailService.EmailType;
@@ -38,11 +40,16 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
+    private final OrderDetailBulkRepository orderDetailBulkRepository;
     private final AddressFeignClient addressFeignClient;
     private final ProductFeignClient productFeignClient;
     private final EntityManager entityManager;
     private final RedissonClient redissonClient;
+
+    // todo : for 문안에서 N+1 save 발생!! 해결할것!
+
     private final EmailService emailService;
+
     @Transactional
     public void createOrder(
         Map<Long, Long> basket,
@@ -82,7 +89,8 @@ public class OrderService {
         }
     }
 
-    //상태를 업데이트하는 메서드
+
+//    상태를 업데이트하는 메서드
     @Transactional
     public void updateStockAndCreateOrderDetail(Long productId, Long quantity, Order order) {
         //영속성 컨텍스트를 초기화
@@ -121,7 +129,6 @@ public class OrderService {
         Order order = orderRepository.findById(orderId).orElseThrow(()->new NotFoundException("주문을 찾을 수 없습니다"));
         return Objects.equals(userDetails.getUser().getId(),order.getUserId());
     }
-
 
     public void checkBasket(Map<Long, Long> basket, Order order) {
         for (Map.Entry<Long, Long> entry : basket.entrySet()) {
@@ -252,5 +259,17 @@ public class OrderService {
     }
     public Order getById(Long orderId){
         return orderRepository.findById(orderId).orElseThrow();
+    }
+
+    public Map<Long, Order> getAllById(List<Long> orderIdList){
+        List<Order> orderList = orderRepository.findAllByOrderId(orderIdList);
+
+        Map<Long, Order> orderMap = new HashMap<>();
+
+        for (int i=0; i<orderIdList.size(); i++){
+            orderMap.put(orderIdList.get(i), orderList.get(i));
+        }
+
+        return orderMap;
     }
 }

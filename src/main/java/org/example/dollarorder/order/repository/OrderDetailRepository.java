@@ -6,9 +6,12 @@ import org.example.dollarorder.order.entity.OrderDetail;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.example.dollarorder.order.entity.Order;
 
 public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> {
+
+    @Query("SELECT od FROM OrderDetail od WHERE od.productId IN (:productIdList)")
+    List<OrderDetail> findByProductList(List<Long> productIdList);
+
     List<OrderDetail> findByProductId(Long productId);
 
     @Query("SELECT od FROM OrderDetail od WHERE od.orderId IN (SELECT o.id FROM Order o WHERE o.userId = :userId AND o.state = 'DELIVERED') AND od.productId = :productId AND od.reviewed = false")
@@ -17,5 +20,4 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
     List<OrderDetail> findByOrderId(Long orderId);
 
     List<OrderDetail> findOrderDetailsByOrderId(Long orderId);
-    OrderDetail findOrderDetailByOrderId(Long orderId);
 }

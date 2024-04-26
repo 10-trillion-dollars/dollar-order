@@ -11,12 +11,14 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.dollarorder.global.TimeStamped;
+import org.hibernate.annotations.BatchSize;
 
 
 @Getter
 @NoArgsConstructor
 @Entity
 @Table(name = "orders")
+@BatchSize(size = 10) // 한 번에 10개의 제품을 로딩하도록 설정
 public class Order extends TimeStamped {
 
     @Id
