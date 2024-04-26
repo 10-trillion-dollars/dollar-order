@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dollarorder.domain.address.entity.Address;
@@ -134,16 +135,16 @@ public class OrderService {
             Long stock = productFeignClient.getProduct(productId).getStock();
             if (stock == 0) {
                 System.out.println("재고부족");
-                emailService.sendCancellationEmail(email, orderDetails,
-                    EmailType.STOCK_OUT); // 취소 이메일 발송
-                emailService.saveStock_Out_UserInfoToRedis(email, productId);
+//                emailService.sendCancellationEmail(email, orderDetails,
+//                    EmailType.STOCK_OUT); // 취소 이메일 발송
+//                emailService.saveStock_Out_UserInfoToRedis(email, productId);
                 throw new BadRequestException("상품 ID: " + productId + ", 재고가 없습니다.");
             }
             if (stock < quantity) {
                 System.out.println("재고부족2");
-                emailService.sendCancellationEmail(email, orderDetails,
-                    EmailType.STOCK_OUT); // 취소 이메일 발송
-                emailService.saveStock_Out_UserInfoToRedis(email, productId);
+//                emailService.sendCancellationEmail(email, orderDetails,
+//                    EmailType.STOCK_OUT); // 취소 이메일 발송
+//                emailService.saveStock_Out_UserInfoToRedis(email, productId);
                 throw new BadRequestException(
                     "상품 ID: " + productId + ", 재고가 부족합니다. 요청 수량: " + quantity + ", 현재 재고: "
                         + stock);
@@ -207,12 +208,11 @@ public class OrderService {
                 order.changeState(OrderState.CANCELLED);
                 orderRepository.save(order);
                 restoreStock(order); // 재고 복구 로직
-                User user = addressFeignClient.getUser(order.getUserId());
-                String email = user.getEmail();// 주문한 사용자의 이메일 주소 가져오기
-                OrderDetail orderDetail = orderDetailRepository.findOrderDetailByOrderId(order.getId());
-                String orderDetails = "Order ID: " + orderDetail.getProductName(); // 주문 상세 내용
-                emailService.sendCancellationEmail(email, orderDetails,
-                    EmailType.PAYMENT_TIMEOUT); // 취소 이메일 발송
+                //User user = addressFeignClient.getUser(order.getUserId());
+                //String email = user.getEmail();// 주문한 사용자의 이메일 주소 가져오기
+                //OrderDetail orderDetail = orderDetailRepository.findOrderDetailByOrderId(order.getId());
+                //String orderDetails = "Order ID: " + orderDetail.getProductName(); // 주문 상세 내용
+                //emailService.sendCancellationEmail(email, orderDetails,EmailType.PAYMENT_TIMEOUT); // 취소 이메일 발송
             }
         }
     }
@@ -255,7 +255,8 @@ public class OrderService {
             }
         }
     }
-    public Order getById(Long orderId){
-        return orderRepository.findById(orderId).orElseThrow();
-    }
+    public Order getById(Long orderId) {
+        return orderRepository.findById(orderId).orElseThrow();}
+
+
 }
