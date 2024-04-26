@@ -19,7 +19,6 @@ import org.example.dollarorder.order.dto.OrderResponseDto;
 import org.example.dollarorder.order.entity.Order;
 import org.example.dollarorder.order.entity.OrderDetail;
 import org.example.dollarorder.order.entity.OrderState;
-import org.example.dollarorder.order.repository.OrderDetailBulkRepository;
 import org.example.dollarorder.order.repository.OrderDetailRepository;
 import org.example.dollarorder.order.repository.OrderRepository;
 import org.example.dollarorder.order.service.EmailService.EmailType;
@@ -40,7 +39,6 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
-    private final OrderDetailBulkRepository orderDetailBulkRepository;
     private final AddressFeignClient addressFeignClient;
     private final ProductFeignClient productFeignClient;
     private final EntityManager entityManager;
