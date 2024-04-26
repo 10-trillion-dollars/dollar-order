@@ -6,6 +6,8 @@ spring:
     username: ${rds.username}
     password: ${rds.password}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -27,6 +29,13 @@ kakao:
     
 server:
   port: 8084
+aws:
+  access:
+    key: ${access.key.id}
+  secret:
+    key: ${aws.secret.key}
+
+destination: ${elk}
 
 loadbalancer:
   user: ${load.user}

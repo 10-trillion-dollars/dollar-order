@@ -32,7 +32,6 @@ public class Address {
     @Column(nullable = false)
     private String province;
 
-
     @Column
     private Long userId;
 
