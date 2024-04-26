@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -19,6 +20,7 @@ import org.example.dollarorder.order.dto.OrderResponseDto;
 import org.example.dollarorder.order.entity.Order;
 import org.example.dollarorder.order.entity.OrderDetail;
 import org.example.dollarorder.order.entity.OrderState;
+import org.example.dollarorder.order.repository.OrderDetailBulkRepository;
 import org.example.dollarorder.order.repository.OrderDetailRepository;
 import org.example.dollarorder.order.repository.OrderRepository;
 import org.example.share.config.global.exception.BadRequestException;
@@ -37,11 +39,13 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
+    private final OrderDetailBulkRepository orderDetailBulkRepository;
     private final AddressFeignClient addressFeignClient;
     private final ProductFeignClient productFeignClient;
     private final EntityManager entityManager;
     private final RedissonClient redissonClient;
 
+    // todo : for 문안에서 N+1 save 발생!! 해결할것!
     public void createOrder(
         Map<Long, Long> basket,
         UserDetailsImpl userDetails,
@@ -83,7 +87,87 @@ public class OrderService {
         }
     }
 
-    //상태를 업데이트하는 메서드
+//    public void createOrder(
+//        Map<Long, Long> basket,
+//        UserDetailsImpl userDetails,
+//        Long addressId
+//    ) {
+//        String lockKey = "order_lock";
+//        RLock lock = redissonClient.getLock(lockKey);
+//        try {
+//            boolean isLocked = lock.tryLock(5, 10, TimeUnit.SECONDS);
+//            if (!isLocked) {
+//                throw new RuntimeException("락 획득에 실패했습니다.");
+//            }
+//            System.out.println(userDetails.getUser().getId()+"번 유저가 주문을 합니다.");
+//            // 상품 수량 검증 코드
+//            checkBasket(basket);
+//
+//            // 주문 객체 생성
+//            Order order = new Order(userDetails.getUser().getId(), OrderState.NOTPAYED, addressId);
+//
+//            // 주문 객체 저장
+//            Order savedOrder = orderRepository.save(order);
+//
+//            // 장바구니를 순회하며
+//            // 주문한 상품과 상품 개수를 상품 상세정보 테이블에 업데이트
+//            // 상품 테이블의 상품 수량 업데이트
+////            List<Long> productIdList = new ArrayList<>();
+////            List<Long> quantityList = new ArrayList<>();
+////            for (Map.Entry<Long, Long> entry : basket.entrySet()) {
+////                Long productId = entry.getKey();
+////                Long quantity = entry.getValue();
+////                productIdList.add(productId);
+////                quantityList.add(quantity);
+////            }
+//            // 상태를 업데이트하는 메서드
+////            updateStockAndCreateOrderDetail(productIdList, quantityList, savedOrder);
+//            updateStockAndCreateOrderDetail(basket, savedOrder);
+//
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException("락 획득 중 오류가 발생했습니다.", e);
+//        } finally {
+//            if (lock.isLocked()) {
+//                lock.unlock();
+//            }
+//        }
+//    }
+
+//    @Transactional
+//    public void updateStockAndCreateOrderDetail(Map<Long, Long> basket, Order order) {
+//        //영속성 컨텍스트를 초기화
+//        entityManager.clear();
+//
+//        List<Long> productIdList = new ArrayList<>();
+//        List<Long> quantityList = new ArrayList<>();
+//        for (Map.Entry<Long, Long> entry : basket.entrySet()) {
+//            Long productId = entry.getKey();
+//            Long quantity = entry.getValue();
+//            productIdList.add(productId);
+//            quantityList.add(quantity);
+//        }
+//
+//        //상품 객체 생성
+//        List<Product> productList = productFeignClient.getProduct(productIdList);
+//        //상품 수량 수정
+//        productFeignClient.updateStockAfterOrder(basket);
+//        for(int i=0; i<productList.size(); i++){
+////            productList.get(i).updateStockAfterOrder(quantityList.get(i));
+////            System.out.println("현재 상품 수량: " + productList.getStock());
+//            System.out.println("현재 상품 수량: " + productList.get(i).getStock());
+//        }
+//        //수정된 상품 저장
+//        productFeignClient.saveBulk(productList);
+//
+//        //상품 상세정보 객체 저장
+//        List<OrderDetail> orderDetail = new ArrayList<>();
+//        for(Product product : productList){
+//            orderDetail.add(new OrderDetail(order.getId(), product.getId(), basket.get(product.getId()), product.getPrice(), product.getName()));
+//        }
+//        orderDetailBulkRepository.saveBulk(orderDetail);
+//    }
+
+//    상태를 업데이트하는 메서드
     @Transactional
     public void updateStockAndCreateOrderDetail(Long productId, Long quantity, Order order) {
         //영속성 컨텍스트를 초기화
@@ -124,24 +208,46 @@ public class OrderService {
     }
 
 
+//    public void checkBasket(Map<Long, Long> basket) {
+//        List<Long> productIdList = new ArrayList<>();
+//        for (Map.Entry<Long, Long> entry : basket.entrySet()) {
+//            productIdList.add(entry.getKey());
+//        }
+//
+//        List<Product> productList = productFeignClient.getProduct(productIdList);
+//
+//        for(Product product : productList){
+//            if (product.getStock() == 0) {
+//                System.out.println("재고부족");
+//                throw new BadRequestException("상품 ID: " + product.getId() + ", 재고가 없습니다.");
+//            }
+//            if (product.getStock() < basket.get(product.getId())) {
+//                System.out.println("재고부족2");
+//                throw new BadRequestException(
+//                    "상품 ID: " + product.getId() + ", 재고가 부족합니다. 요청 수량: " + basket.get(product.getId()) + ", 현재 재고: "
+//                        + product.getStock());
+//            }
+//        }
+//    }
+
     public void checkBasket(Map<Long, Long> basket) {
-        for (Map.Entry<Long, Long> entry : basket.entrySet()) {
-            Long productId = entry.getKey();
-            Long quantity = entry.getValue();
+            for (Map.Entry<Long, Long> entry : basket.entrySet()) {
+                Long productId = entry.getKey();
+                Long quantity = entry.getValue();
 
-            Long stock = productFeignClient.getProduct(productId).getStock();
-            if (stock == 0) {
-                System.out.println("재고부족");
-                throw new BadRequestException("상품 ID: " + productId + ", 재고가 없습니다.");
+                Long stock = productFeignClient.getProduct(productId).getStock();
+                if (stock == 0) {
+                    System.out.println("재고부족");
+                    throw new BadRequestException("상품 ID: " + productId + ", 재고가 없습니다.");
 
+                }
+                if (stock < quantity) {
+                    System.out.println("재고부족2");
+                    throw new BadRequestException(
+                        "상품 ID: " + productId + ", 재고가 부족합니다. 요청 수량: " + quantity + ", 현재 재고: "
+                            + stock);
+                }
             }
-            if (stock < quantity) {
-                System.out.println("재고부족2");
-                throw new BadRequestException(
-                    "상품 ID: " + productId + ", 재고가 부족합니다. 요청 수량: " + quantity + ", 현재 재고: "
-                        + stock);
-            }
-        }
     }
 
     //주문서 조회 메서드
@@ -241,7 +347,19 @@ public class OrderService {
             }
         }
     }
-    public List<Order> getById(List<Long> orderIdList){
-        return orderRepository.findAllByOrderId(orderIdList);
+//    public Order getById(Long orderId){
+//        return orderRepository.findById(orderId).orElseThrow();
+//    }
+
+    public Map<Long, Order> getAllById(List<Long> orderIdList){
+        List<Order> orderList = orderRepository.findAllByOrderId(orderIdList);
+
+        Map<Long, Order> orderMap = new HashMap<>();
+
+        for (int i=0; i<orderIdList.size(); i++){
+            orderMap.put(orderIdList.get(i), orderList.get(i));
+        }
+
+        return orderMap;
     }
 }

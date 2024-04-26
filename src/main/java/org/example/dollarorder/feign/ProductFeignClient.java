@@ -2,6 +2,8 @@ package org.example.dollarorder.feign;
 
 import feign.FeignException;
 import feign.FeignException.FeignClientException;
+import java.util.List;
+import java.util.Map;
 import org.example.dollarorder.domain.product.entity.Product;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,5 +35,11 @@ public interface ProductFeignClient {
         Logger logger = LoggerFactory.getLogger(ProductFeignClient.class);
         logger.error("All retries failed., error = {}", e.getMessage());
     }
-}
 
+
+    @PostMapping("/products/saveBulk")
+    void saveBulk(@RequestBody List<Product> productList);
+
+    @PostMapping("/products/updateBulk")
+    void updateStockAfterOrder(@RequestBody Map<Long, Long> basket);
+}
