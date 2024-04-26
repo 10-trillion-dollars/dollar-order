@@ -2,8 +2,7 @@ spring:
   application:
     name: dollar-order
   datasource:
-    url: jdbc:mysql://localhost:3306/${db}
-#    url: ${rds.host}
+    url: ${rds.host}
     username: ${rds.username}
     password: ${rds.password}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -17,7 +16,7 @@ spring:
         use_sql_comments: true
   data:
     redis:
-      host: localhost
+      host: ${redis.host}
       port: 6379
 jwt:
   key: ${jwt.secret.key}

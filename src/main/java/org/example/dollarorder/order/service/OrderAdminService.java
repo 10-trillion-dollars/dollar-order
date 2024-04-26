@@ -34,8 +34,8 @@ public class OrderAdminService {
         return orderDetailRepository.findByProductList(productIdList);
     }
 
-//    public List<OrderDetail> XfindOrderDetailsByProductId(Long productId) {
-//        return orderDetailRepository.findByProductId(productId);
-//    }
+    public List<OrderDetail> XfindOrderDetailsByProductId(Long productId) {
+        return orderDetailRepository.findByProductId(productId);
+    }
 
 }

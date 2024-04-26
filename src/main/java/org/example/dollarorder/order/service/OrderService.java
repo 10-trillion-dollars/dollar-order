@@ -346,9 +346,9 @@ public class OrderService {
             }
         }
     }
-//    public Order getById(Long orderId){
-//        return orderRepository.findById(orderId).orElseThrow();
-//    }
+    public Order getById(Long orderId){
+        return orderRepository.findById(orderId).orElseThrow();
+    }
 
     public Map<Long, Order> getAllById(List<Long> orderIdList){
         List<Order> orderList = orderRepository.findAllByOrderId(orderIdList);
