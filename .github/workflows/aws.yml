@@ -30,6 +30,8 @@ jobs:
           kakao.api.admin-key: ${{ secrets.KAKAO_ADMIN_KEY }}
           loadbalancer.user: ${{ secrets.LOADBALANCER_USER }}
           loadbalancer.product: ${{ secrets.LOADBALANCER_PRODUCT }}
+          aws.access.key: ${{secrets.AWS_ACCESS_KEY_ID}}
+          aws.secret.key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
 
 
       - name: Grant execute permission for gradlew
