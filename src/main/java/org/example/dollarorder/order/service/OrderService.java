@@ -19,6 +19,7 @@ import org.example.dollarorder.order.dto.OrderResponseDto;
 import org.example.dollarorder.order.entity.Order;
 import org.example.dollarorder.order.entity.OrderDetail;
 import org.example.dollarorder.order.entity.OrderState;
+import org.example.dollarorder.order.repository.OrderDetailBulkRepository;
 import org.example.dollarorder.order.repository.OrderDetailRepository;
 import org.example.dollarorder.order.repository.OrderRepository;
 import org.example.dollarorder.order.service.EmailService.EmailType;
@@ -39,6 +40,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
+    private final OrderDetailBulkRepository orderDetailBulkRepository;
     private final AddressFeignClient addressFeignClient;
     private final ProductFeignClient productFeignClient;
     private final EntityManager entityManager;
@@ -240,13 +242,6 @@ public void checkBasket(Map<Long, Long> basket, Order order) {
     for(Product product : productList){
         Long stock = product.getStock();
 
-//        if (stock == 0) {
-//            System.out.println("재고부족");
-//            emailService.sendCancellationEmail(email, orderDetails,
-//                EmailType.STOCK_OUT); // 취소 이메일 발송
-//            emailService.saveStock_Out_UserInfoToRedis(email, product.getId());
-//            throw new BadRequestException("상품 ID: " + product.getId() + ", 재고가 없습니다.");
-//        }
         if (stock < basket.get(product.getId())) {
             User user = addressFeignClient.getUser(order.getUserId());
             String email = user.getEmail();// 주문한 사용자의 이메일 주소 가져오기

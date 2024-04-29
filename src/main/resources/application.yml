@@ -35,8 +35,6 @@ aws:
   secret:
     key: ${aws.secret.key}
 
-destination: ${elk}
-
 loadbalancer:
   user: ${load.user}
   product: ${load.product}
