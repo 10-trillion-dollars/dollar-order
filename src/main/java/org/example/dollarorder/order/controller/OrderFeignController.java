@@ -38,16 +38,6 @@ public class OrderFeignController {
     }
 
     // 쿼리 개선 전
-    @GetMapping("/{productId}/orderDetails")
-    List<OrderDetail> XfindOrderDetailsByProductId(@PathVariable Long productId) {
-        return orderAdminService.XfindOrderDetailsByProductId(productId);
-    }
-
-    @GetMapping("/orders/{orderId}")
-    Order getById(@PathVariable Long orderId) {
-        return orderService.getById(orderId);
-    }
-
     @GetMapping("/users/{userId}/products/{productId}/orders")
     List<OrderDetail> getOrderDetails(@PathVariable Long userId, @PathVariable Long productId) {
         return orderService.getOrderDetails(userId, productId);

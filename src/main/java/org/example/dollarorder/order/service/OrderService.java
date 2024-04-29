@@ -48,6 +48,45 @@ public class OrderService {
 
     private final EmailService emailService;
 
+//    @Transactional
+//    public void createOrder(
+//        Map<Long, Long> basket,
+//        UserDetailsImpl userDetails,
+//        Long addressId
+//    ) {
+//        String lockKey = "order_lock";
+//        RLock lock = redissonClient.getLock(lockKey);
+//        try {
+//            boolean isLocked = lock.tryLock(5, 10, TimeUnit.SECONDS);
+//            if (!isLocked) {
+//                throw new RuntimeException("락 획득에 실패했습니다.");
+//            }
+//            System.out.println(userDetails.getUser().getId() + "번 유저가 주문을 합니다.");
+//            // 주문 객체 생성
+//            Order order = new Order(userDetails.getUser().getId(), OrderState.NOTPAYED, addressId);
+//            // 상품 수량 검증 코드
+//            checkBasket(basket, order);
+//            // 주문 객체 저장
+//            orderRepository.save(order);
+//
+//            // 장바구니를 순회하며
+//            // 주문한 상품과 상품 개수를 상품 상세정보 테이블에 업데이트
+//            // 상품 테이블의 상품 수량 업데이트
+//            for (Map.Entry<Long, Long> entry : basket.entrySet()) {
+//                Long productId = entry.getKey();
+//                Long quantity = entry.getValue();
+//                // 상태를 업데이트하는 메서드
+//                updateStockAndCreateOrderDetail(productId, quantity, order);
+//            }
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException("락 획득 중 오류가 발생했습니다.", e);
+//        } finally {
+//            if (lock.isLocked()) {
+//                lock.unlock();
+//            }
+//        }
+//    }
+
     @Transactional
     public void createOrder(
         Map<Long, Long> basket,
@@ -61,23 +100,19 @@ public class OrderService {
             if (!isLocked) {
                 throw new RuntimeException("락 획득에 실패했습니다.");
             }
-            System.out.println(userDetails.getUser().getId() + "번 유저가 주문을 합니다.");
+            System.out.println(userDetails.getUser().getId()+"번 유저가 주문을 합니다.");
             // 주문 객체 생성
             Order order = new Order(userDetails.getUser().getId(), OrderState.NOTPAYED, addressId);
             // 상품 수량 검증 코드
             checkBasket(basket, order);
             // 주문 객체 저장
-            orderRepository.save(order);
+            Order savedOrder = orderRepository.save(order);
 
             // 장바구니를 순회하며
             // 주문한 상품과 상품 개수를 상품 상세정보 테이블에 업데이트
             // 상품 테이블의 상품 수량 업데이트
-            for (Map.Entry<Long, Long> entry : basket.entrySet()) {
-                Long productId = entry.getKey();
-                Long quantity = entry.getValue();
-                // 상태를 업데이트하는 메서드
-                updateStockAndCreateOrderDetail(productId, quantity, order);
-            }
+            updateStockAndCreateOrderDetail(basket, savedOrder);
+
         } catch (InterruptedException e) {
             throw new RuntimeException("락 획득 중 오류가 발생했습니다.", e);
         } finally {
@@ -89,21 +124,56 @@ public class OrderService {
 
 
 //    상태를 업데이트하는 메서드
+//    @Transactional
+//    public void updateStockAndCreateOrderDetail(Long productId, Long quantity, Order order) {
+//        //영속성 컨텍스트를 초기화
+//        entityManager.clear();
+//        //상품 객체 생성
+//        Product product = productFeignClient.getProduct(productId);
+//        //상품 수량 수정
+//        product.updateStockAfterOrder(quantity);
+//        System.out.println("현재 상품 수량: " + product.getStock());
+//        //수정된 상품 저장
+//        productFeignClient.save(product);
+//        //상품 상세정보 객체 저장
+//        OrderDetail orderDetail = new OrderDetail(order.getId(), productId, quantity, product.getPrice(), product.getName());
+//        orderDetailRepository.save(orderDetail);
+//    }
+
     @Transactional
-    public void updateStockAndCreateOrderDetail(Long productId, Long quantity, Order order) {
+    public void updateStockAndCreateOrderDetail(Map<Long, Long> basket, Order order) {
         //영속성 컨텍스트를 초기화
         entityManager.clear();
+
+        List<Long> productIdList = new ArrayList<>();
+        List<Long> quantityList = new ArrayList<>();
+        for (Map.Entry<Long, Long> entry : basket.entrySet()) {
+            Long productId = entry.getKey();
+            Long quantity = entry.getValue();
+            productIdList.add(productId);
+            quantityList.add(quantity);
+        }
+
         //상품 객체 생성
-        Product product = productFeignClient.getProduct(productId);
+        List<Product> productList = productFeignClient.getProductList(productIdList);
+
         //상품 수량 수정
-        product.updateStockAfterOrder(quantity);
-        System.out.println("현재 상품 수량: " + product.getStock());
+        for(Product product : productList){
+            product.updateStockAfterOrder(basket.get(product.getId()));
+            System.out.println("현재 상품 수량: " + product.getStock());
+        }
+
         //수정된 상품 저장
-        productFeignClient.save(product);
+        productFeignClient.updateBulk(productList);
+
         //상품 상세정보 객체 저장
-        OrderDetail orderDetail = new OrderDetail(order.getId(), productId, quantity, product.getPrice(), product.getName());
-        orderDetailRepository.save(orderDetail);
+        List<OrderDetail> orderDetail = new ArrayList<>();
+        for(Product product : productList){
+            orderDetail.add(new OrderDetail(order.getId(), product.getId(), basket.get(product.getId()), product.getPrice(), product.getName()));
+        }
+        orderDetailBulkRepository.saveBulk(orderDetail);
     }
+
 
     public List<OrderDetailResponseDto> getOrderDetailList(
         Long orderId
@@ -128,33 +198,68 @@ public class OrderService {
         return Objects.equals(userDetails.getUser().getId(),order.getUserId());
     }
 
-    public void checkBasket(Map<Long, Long> basket, Order order) {
-        for (Map.Entry<Long, Long> entry : basket.entrySet()) {
-            Long productId = entry.getKey();
-            Long quantity = entry.getValue();
+//    public void checkBasket(Map<Long, Long> basket, Order order) {
+//        for (Map.Entry<Long, Long> entry : basket.entrySet()) {
+//            Long productId = entry.getKey();
+//            Long quantity = entry.getValue();
+//            User user = addressFeignClient.getUser(order.getUserId());
+//            String email = user.getEmail();// 주문한 사용자의 이메일 주소 가져오기
+//            String orderDetails = "Order ID: " + order.getId(); // 주문 상세 내용
+//            //레디스로
+//            Long stock = productFeignClient.getProduct(productId).getStock();
+//            if (stock == 0) {
+//                System.out.println("재고부족");
+//                emailService.sendCancellationEmail(email, orderDetails,
+//                    EmailType.STOCK_OUT); // 취소 이메일 발송
+//                emailService.saveStock_Out_UserInfoToRedis(email, productId);
+//                throw new BadRequestException("상품 ID: " + productId + ", 재고가 없습니다.");
+//            }
+//            if (stock < quantity) {
+//                System.out.println("재고부족2");
+//                emailService.sendCancellationEmail(email, orderDetails,
+//                    EmailType.STOCK_OUT); // 취소 이메일 발송
+//                emailService.saveStock_Out_UserInfoToRedis(email, productId);
+//                throw new BadRequestException(
+//                    "상품 ID: " + productId + ", 재고가 부족합니다. 요청 수량: " + quantity + ", 현재 재고: "
+//                        + stock);
+//            }
+//        }
+//    }
+
+public void checkBasket(Map<Long, Long> basket, Order order) {
+    List<Long> productIdList = new ArrayList<>();
+    for (Map.Entry<Long, Long> entry : basket.entrySet()) {
+        Long productId = entry.getKey();
+        productIdList.add(productId);
+    }
+
+    String orderDetails = "Order ID: " + order.getId(); // 주문 상세 내용
+    //레디스로
+    List<Product> productList = productFeignClient.getProductList(productIdList);
+
+    for(Product product : productList){
+        Long stock = product.getStock();
+
+//        if (stock == 0) {
+//            System.out.println("재고부족");
+//            emailService.sendCancellationEmail(email, orderDetails,
+//                EmailType.STOCK_OUT); // 취소 이메일 발송
+//            emailService.saveStock_Out_UserInfoToRedis(email, product.getId());
+//            throw new BadRequestException("상품 ID: " + product.getId() + ", 재고가 없습니다.");
+//        }
+        if (stock < basket.get(product.getId())) {
             User user = addressFeignClient.getUser(order.getUserId());
             String email = user.getEmail();// 주문한 사용자의 이메일 주소 가져오기
-            String orderDetails = "Order ID: " + order.getId(); // 주문 상세 내용
-            //레디스로
-            Long stock = productFeignClient.getProduct(productId).getStock();
-            if (stock == 0) {
-                System.out.println("재고부족");
-                emailService.sendCancellationEmail(email, orderDetails,
-                    EmailType.STOCK_OUT); // 취소 이메일 발송
-                emailService.saveStock_Out_UserInfoToRedis(email, productId);
-                throw new BadRequestException("상품 ID: " + productId + ", 재고가 없습니다.");
-            }
-            if (stock < quantity) {
-                System.out.println("재고부족2");
-                emailService.sendCancellationEmail(email, orderDetails,
-                    EmailType.STOCK_OUT); // 취소 이메일 발송
-                emailService.saveStock_Out_UserInfoToRedis(email, productId);
-                throw new BadRequestException(
-                    "상품 ID: " + productId + ", 재고가 부족합니다. 요청 수량: " + quantity + ", 현재 재고: "
-                        + stock);
-            }
+            System.out.println("재고부족2");
+            emailService.sendCancellationEmail(email, orderDetails,
+                EmailType.STOCK_OUT); // 취소 이메일 발송
+            emailService.saveStock_Out_UserInfoToRedis(email, product.getId());
+            throw new BadRequestException(
+                "상품 ID: " + product.getId() + ", 재고가 부족합니다. 요청 수량: " + basket.get(product.getId()) + ", 현재 재고: "
+                    + stock);
         }
     }
+}
 
     //주문서 조회 메서드
     public List<OrderResponseDto> getOrderList(
