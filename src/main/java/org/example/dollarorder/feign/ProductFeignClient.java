@@ -15,11 +15,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(name = "dollar-product", url = "${loadbalancer.product}/external")
-//@FeignClient(name = "dollar-product", url = "http://localhost:8083/external")
+// @FeignClient(name = "dollar-product", url = "http://localhost:8083/external")
 public interface ProductFeignClient {
 
     @GetMapping("/products/{productId}")
     Product getProduct(@PathVariable("productId") Long productId);
+
+    @PostMapping("/products/productIdList")
+    List<Product> getProductList(@RequestBody List<Long> productIdList);
 
     @PostMapping("/products")
     @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 1000, maxDelay = 5000)
@@ -35,3 +38,8 @@ public interface ProductFeignClient {
     }
 }
 
+
+    @PostMapping("/products/updateBulk")
+    void updateBulk(@RequestBody List<Product> productList);
+
+}

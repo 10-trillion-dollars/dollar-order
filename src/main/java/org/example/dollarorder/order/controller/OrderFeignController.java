@@ -25,10 +25,25 @@ public class OrderFeignController {
 //        return orderService.countByUserIdAndProductId(userId, productId);
 //    }
 
-    @GetMapping("/orders/{orderId}")
-    Order getById(@PathVariable Long orderId) {
-        return orderService.getById(orderId);
+
+    //@GetMapping("/orders/{orderId}")
+    // Order getById(@PathVariable Long orderId) {
+    //     return orderService.getById(orderId);
+    // }
+
+
+    // 쿼리 개선 후
+    @PostMapping("/productLists/orderDetails")
+    List<OrderDetail> findOrderDetailsByProductId(@RequestBody List<Long> productIdList) {
+        return orderAdminService.findOrderDetailsByProductId(productIdList);
     }
+
+    @PostMapping("/orders")
+    Map<Long, Order> getAllById(@RequestBody List<Long> orderIdList) {
+        return orderService.getAllById(orderIdList);
+    }
+
+    // 쿼리 개선 전
 
     @GetMapping("/users/{userId}/products/{productId}/orders")
     List<OrderDetail> getOrderDetails(@PathVariable Long userId, @PathVariable Long productId) {
