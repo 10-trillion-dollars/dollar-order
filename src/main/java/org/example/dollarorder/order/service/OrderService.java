@@ -19,7 +19,6 @@ import org.example.dollarorder.order.dto.OrderResponseDto;
 import org.example.dollarorder.order.entity.Order;
 import org.example.dollarorder.order.entity.OrderDetail;
 import org.example.dollarorder.order.entity.OrderState;
-import org.example.dollarorder.order.repository.OrderDetailBulkRepository;
 import org.example.dollarorder.order.repository.OrderDetailRepository;
 import org.example.dollarorder.order.repository.OrderRepository;
 import org.example.dollarorder.order.service.EmailService.EmailType;
@@ -40,7 +39,6 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
-    private final OrderDetailBulkRepository orderDetailBulkRepository;
     private final AddressFeignClient addressFeignClient;
     private final ProductFeignClient productFeignClient;
     private final EntityManager entityManager;
@@ -320,6 +318,11 @@ public void checkBasket(Map<Long, Long> basket, Order order) {
                 order.changeState(OrderState.CANCELLED);
                 orderRepository.save(order);
                 restoreStock(order); // 재고 복구 로직
+                User user = addressFeignClient.getUser(order.getUserId());
+                String email = user.getEmail();// 주문한 사용자의 이메일 주소 가져오기
+                OrderDetail orderDetail = orderDetailRepository.findOrderDetailByOrderId(order.getId());
+                String orderDetails = "Order ID: " + orderDetail.getProductName(); // 주문 상세 내용
+                emailService.sendCancellationEmail(email, orderDetails,EmailType.PAYMENT_TIMEOUT); // 취소 이메일 발송
             }
         }
     }
