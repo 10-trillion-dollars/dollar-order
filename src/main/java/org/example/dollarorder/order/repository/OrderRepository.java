@@ -13,7 +13,4 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     //주문하고 5분 뒤에 결제 안한 주문 찾는 쿼리
     @Query("SELECT o FROM Order o WHERE o.state = 'NOTPAYED' AND o.createdAt < :cutoff")
     List<Order> findUnpaidOrdersOlderThan(@Param("cutoff") LocalDateTime cutoff);
-
-    @Query("SELECT o FROM Order o WHERE o.id IN (:orderIdList)")
-    List<Order> findAllByOrderId(List<Long> orderIdList);
 }

@@ -2,8 +2,8 @@ package org.example.dollarorder.order.service;
 
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -21,8 +21,6 @@ import org.example.dollarorder.order.entity.OrderDetail;
 import org.example.dollarorder.order.entity.OrderState;
 import org.example.dollarorder.order.repository.OrderDetailRepository;
 import org.example.dollarorder.order.repository.OrderRepository;
-import org.example.dollarorder.order.service.EmailService.EmailType;
-import org.example.share.config.global.entity.user.User;
 import org.example.share.config.global.exception.BadRequestException;
 import org.example.share.config.global.exception.NotFoundException;
 import org.example.share.config.global.security.UserDetailsImpl;
@@ -43,6 +41,7 @@ public class OrderService {
     private final ProductFeignClient productFeignClient;
     private final EntityManager entityManager;
     private final RedissonClient redissonClient;
+
 
     // todo : for 문안에서 N+1 save 발생!! 해결할것!
 
@@ -88,6 +87,7 @@ public class OrderService {
 //    }
 
     @Transactional
+
     public void createOrder(
         Map<Long, Long> basket,
         UserDetailsImpl userDetails,
@@ -101,16 +101,20 @@ public class OrderService {
                 throw new RuntimeException("락 획득에 실패했습니다.");
             }
             System.out.println(userDetails.getUser().getId()+"번 유저가 주문을 합니다.");
+
+            // 상품 수량 검증 코드
+            checkBasket(basket);
+
             // 주문 객체 생성
             Order order = new Order(userDetails.getUser().getId(), OrderState.NOTPAYED, addressId);
-            // 상품 수량 검증 코드
-            checkBasket(basket, order);
+
             // 주문 객체 저장
             Order savedOrder = orderRepository.save(order);
 
             // 장바구니를 순회하며
             // 주문한 상품과 상품 개수를 상품 상세정보 테이블에 업데이트
             // 상품 테이블의 상품 수량 업데이트
+
             updateStockAndCreateOrderDetail(basket, savedOrder);
 
         } catch (InterruptedException e) {
@@ -121,6 +125,9 @@ public class OrderService {
             }
         }
     }
+
+
+    //상태를 업데이트하는 메서드
 
 
 //    상태를 업데이트하는 메서드
@@ -139,6 +146,7 @@ public class OrderService {
 //        OrderDetail orderDetail = new OrderDetail(order.getId(), productId, quantity, product.getPrice(), product.getName());
 //        orderDetailRepository.save(orderDetail);
 //    }
+
 
     @Transactional
     public void updateStockAndCreateOrderDetail(Map<Long, Long> basket, Order order) {
@@ -197,6 +205,7 @@ public class OrderService {
         Order order = orderRepository.findById(orderId).orElseThrow(()->new NotFoundException("주문을 찾을 수 없습니다"));
         return Objects.equals(userDetails.getUser().getId(),order.getUserId());
     }
+
 
 //    public void checkBasket(Map<Long, Long> basket, Order order) {
 //        for (Map.Entry<Long, Long> entry : basket.entrySet()) {
@@ -257,6 +266,7 @@ public void checkBasket(Map<Long, Long> basket, Order order) {
             throw new BadRequestException(
                 "상품 ID: " + product.getId() + ", 재고가 부족합니다. 요청 수량: " + basket.get(product.getId()) + ", 현재 재고: "
                     + stock);
+
         }
     }
 }
@@ -266,7 +276,7 @@ public void checkBasket(Map<Long, Long> basket, Order order) {
         UserDetailsImpl userDetails
     ) {
         List<Order> orderList = orderRepository.findOrdersByUserId(userDetails.getUser().getId());
-        List<OrderResponseDto> ResponseList = new ArrayList<>();
+        List<OrderResponseDto> ResponseList = new ArrayList<OrderResponseDto>();
         for (Order order : orderList) {
             Address address = addressFeignClient.findOne(order.getAddressId());
             OrderResponseDto orderResponseDto = new OrderResponseDto(order, address);
@@ -276,11 +286,11 @@ public void checkBasket(Map<Long, Long> basket, Order order) {
     }
 
     //가격의 합을 계산하는 메서드
-    public long getTotalPrice(
-        long orderId
+    public Long getTotalPrice(
+        Long orderId
     ) {
         List<OrderDetail> ListofOrderDetail = orderDetailRepository.findOrderDetailsByOrderId(orderId);
-        long totalPrice = 0L;
+        Long totalPrice = 0L;
         for (OrderDetail orderDetail : ListofOrderDetail) {
             totalPrice += orderDetail.getPrice() * orderDetail.getQuantity();
         }
@@ -302,31 +312,23 @@ public void checkBasket(Map<Long, Long> basket, Order order) {
         orderDetailRepository.save(orderDetail);
     }
 
-
-    @Transactional
 //**********************스케쥴 메서드 수정*************************//
     @Scheduled(fixedDelay = 300000) // 5분에 한번씩 실행
     public void cancelUnpaidOrdersAndRestoreStock(
     ) {
         //시간 설정 변수 선언
-        LocalDateTime minutesAgo = LocalDateTime.now().minusSeconds(10);
+        LocalDateTime MinutesAgo = LocalDateTime.now().minus(5, ChronoUnit.MINUTES);
         // MinutesAgo 변수 설정 시간 이상 미결제 주문 조회
-        List<Order> unpaidOrders = orderRepository.findUnpaidOrdersOlderThan(minutesAgo);
+        List<Order> unpaidOrders = orderRepository.findUnpaidOrdersOlderThan(MinutesAgo);
         //일정 시간이 지난 order 리스트를 순회 하며 주문을 취소 시키고 재고를 복구함
         for (Order order : unpaidOrders) {
             if (order.getState() == OrderState.NOTPAYED) {
                 order.changeState(OrderState.CANCELLED);
                 orderRepository.save(order);
                 restoreStock(order); // 재고 복구 로직
-                User user = addressFeignClient.getUser(order.getUserId());
-                String email = user.getEmail();// 주문한 사용자의 이메일 주소 가져오기
-                OrderDetail orderDetail = orderDetailRepository.findOrderDetailByOrderId(order.getId());
-                String orderDetails = "Order ID: " + orderDetail.getProductName(); // 주문 상세 내용
-                emailService.sendCancellationEmail(email, orderDetails,EmailType.PAYMENT_TIMEOUT); // 취소 이메일 발송
             }
         }
     }
-
     @Transactional
     public void restoreStock(
         Order order
@@ -367,17 +369,5 @@ public void checkBasket(Map<Long, Long> basket, Order order) {
     }
     public Order getById(Long orderId){
         return orderRepository.findById(orderId).orElseThrow();
-    }
-
-    public Map<Long, Order> getAllById(List<Long> orderIdList){
-        List<Order> orderList = orderRepository.findAllByOrderId(orderIdList);
-
-        Map<Long, Order> orderMap = new HashMap<>();
-
-        for (int i=0; i<orderIdList.size(); i++){
-            orderMap.put(orderIdList.get(i), orderList.get(i));
-        }
-
-        return orderMap;
     }
 }
