@@ -30,12 +30,7 @@ public class OrderAdminService {
     }
         orderRepository.save(order);
     }
-    public List<OrderDetail> findOrderDetailsByProductId(List<Long> productIdList) {
-        return orderDetailRepository.findByProductList(productIdList);
-    }
-
-    public List<OrderDetail> XfindOrderDetailsByProductId(Long productId) {
+    public List<OrderDetail> findOrderDetailsByProductId(Long productId) {
         return orderDetailRepository.findByProductId(productId);
     }
-
 }

@@ -1,7 +1,6 @@
 package org.example.dollarorder.order.controller;
 
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.example.dollarorder.order.entity.Order;
 import org.example.dollarorder.order.entity.OrderDetail;
@@ -26,6 +25,13 @@ public class OrderFeignController {
 //        return orderService.countByUserIdAndProductId(userId, productId);
 //    }
 
+
+    //@GetMapping("/orders/{orderId}")
+    // Order getById(@PathVariable Long orderId) {
+    //     return orderService.getById(orderId);
+    // }
+
+
     // 쿼리 개선 후
     @PostMapping("/productLists/orderDetails")
     List<OrderDetail> findOrderDetailsByProductId(@RequestBody List<Long> productIdList) {
@@ -38,6 +44,7 @@ public class OrderFeignController {
     }
 
     // 쿼리 개선 전
+
     @GetMapping("/users/{userId}/products/{productId}/orders")
     List<OrderDetail> getOrderDetails(@PathVariable Long userId, @PathVariable Long productId) {
         return orderService.getOrderDetails(userId, productId);
@@ -48,8 +55,8 @@ public class OrderFeignController {
         orderService.saveOrderDetailReviewedState(orderDetail);
     }
 
-
-
-
-
+    @GetMapping("/{productId}/orderDetails")
+    List<OrderDetail> findOrderDetailsByProductId(@PathVariable Long productId) {
+        return orderAdminService.findOrderDetailsByProductId(productId);
+    }
 }
