@@ -4,9 +4,12 @@ import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -256,19 +259,48 @@ public void checkBasket(Map<Long, Long> basket, Order order) {
     }
 }
 
-    //주문서 조회 메서드
-    public List<OrderResponseDto> getOrderList(
-        UserDetailsImpl userDetails
-    ) {
-        List<Order> orderList = orderRepository.findOrdersByUserId(userDetails.getUser().getId());
-        List<OrderResponseDto> ResponseList = new ArrayList<>();
-        for (Order order : orderList) {
-            Address address = addressFeignClient.findOne(order.getAddressId());
-            OrderResponseDto orderResponseDto = new OrderResponseDto(order, address);
-            ResponseList.add(orderResponseDto);
-        }
-        return ResponseList;
+//    //주문서 조회 메서드
+//    public List<OrderResponseDto> getOrderList(
+//        UserDetailsImpl userDetails
+//    ) {
+//        List<Order> orderList = orderRepository.findOrdersByUserId(userDetails.getUser().getId());
+//        List<OrderResponseDto> ResponseList = new ArrayList<>();
+//        for (Order order : orderList) {
+//            Address address = addressFeignClient.findOne(order.getAddressId());
+//            OrderResponseDto orderResponseDto = new OrderResponseDto(order, address);
+//            ResponseList.add(orderResponseDto);
+//        }
+//        return ResponseList;
+//    }
+//주문서 조회 메서드
+public List<OrderResponseDto> getOrderList(
+    UserDetailsImpl userDetails
+) {
+    List<Order> orderList = orderRepository.findOrdersByUserId(userDetails.getUser().getId());
+    List<OrderResponseDto> ResponseList = new ArrayList<>();
+
+    Set<Long> addressIdSet = new HashSet<>();
+    for(Order order : orderList){
+        addressIdSet.add(order.getAddressId());
     }
+
+    Map<Order, Address> orderAddressMap = new LinkedHashMap<>();
+    List<Address> addressList = addressFeignClient.findAddressListByAddressIdList(addressIdSet);
+
+    for(Order order : orderList){
+        for(Address address : addressList){
+            if(address.getId().equals(order.getAddressId())){
+                orderAddressMap.put(order, address);
+            }
+        }
+    }
+
+    for(Map.Entry<Order, Address> entry : orderAddressMap.entrySet()){
+        OrderResponseDto orderResponseDto = new OrderResponseDto(entry.getKey(), entry.getValue());
+        ResponseList.add(orderResponseDto);
+    }
+    return ResponseList;
+}
 
     //가격의 합을 계산하는 메서드
     public long getTotalPrice(
